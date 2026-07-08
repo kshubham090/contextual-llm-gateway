@@ -30,46 +30,59 @@ Neo4j does the relationship traversal, and the Claude API is reached through a
 provider abstraction so a second provider can slot in without touching the
 pipeline.
 
-```plantuml
-@startuml
-skinparam componentStyle rectangle
-skinparam shadowing false
-left to right direction
+```mermaid
+flowchart LR
+    client["Client<br/>(any app or service)"]
 
-actor "Client\n(any app or service)" as client
+    subgraph gateway["Contextual LLM Gateway — FastAPI"]
+        direction LR
+        rl["Rate Limiter"]
+        emb["Embedding<br/>Client"]
+        cache["Semantic Cache<br/>(similarity ≥ 0.95)"]
+        ctx["Graph Context<br/>Retriever (≥ 0.75)"]
+        router["Model Router<br/>+ Fallback"]
+        wb["Write-back<br/>(parallel)"]
+    end
 
-package "Contextual LLM Gateway — FastAPI" {
-  component "Rate Limiter" as rl
-  component "Embedding\nClient" as emb
-  component "Semantic Cache\n(similarity ≥ 0.95)" as cache
-  component "Graph Context\nRetriever (≥ 0.75)" as ctx
-  component "Model Router\n+ Fallback" as router
-  component "Write-back\n(parallel)" as wb
-}
+    redis[("Redis<br/>per-user windows")]
+    pg[("Postgres + pgvector<br/>call log · cost rows · HNSW index")]
+    neo[("Neo4j<br/>memory graph")]
+    voyage(["Voyage AI<br/>voyage-3.5 embeddings"])
+    claude(["Claude API<br/>Haiku 4.5 / Sonnet 5"])
 
-database "Redis\nper-user windows" as redis
-database "Postgres + pgvector\ncall log · cost rows · HNSW index" as pg
-database "Neo4j\nmemory graph" as neo
-cloud "Voyage AI\nvoyage-3.5 embeddings" as voyage
-cloud "Claude API\nHaiku 4.5 / Sonnet 5" as claude
+    %% Colors
+    style gateway fill:#ffffff,stroke:#666,stroke-width:1px
+    style rl fill:#ffffff,stroke:#333
+    style emb fill:#ffffff,stroke:#333
+    style cache fill:#ffffff,stroke:#333
+    style ctx fill:#ffffff,stroke:#333
+    style router fill:#ffffff,stroke:#333
+    style wb fill:#ffffff,stroke:#333
 
-client --> rl : POST /v1/chat
-rl --> redis
-emb --> voyage
-cache --> pg : nearest-neighbor query
-ctx --> neo : 1–2 hop walk from seeds
-router --> claude : routed call,\nauto-fallback on 429/timeout/5xx
-wb --> pg : cost + usage row
-wb --> neo : Call node + edges
+    client -->|POST /v1/chat| rl
 
-rl -[hidden]-> emb
-emb -[hidden]-> cache
-cache -[hidden]-> ctx
-ctx -[hidden]-> router
-router -[hidden]-> wb
-@enduml
+    rl --> redis
+    emb --> voyage
+    cache -->|nearest-neighbor query| pg
+    ctx -->|1–2 hop walk from seeds| neo
+    router -->|routed call<br/>auto-fallback on 429/timeout/5xx| claude
+    wb -->|cost + usage row| pg
+    wb -->|Call node + edges| neo
+
+    %% Hidden ordering links (approximation)
+    rl -.-> emb
+    emb -.-> cache
+    cache -.-> ctx
+    ctx -.-> router
+    router -.-> wb
+
+    %% Make them invisible
+    linkStyle 7 stroke:transparent
+    linkStyle 8 stroke:transparent
+    linkStyle 9 stroke:transparent
+    linkStyle 10 stroke:transparent
+    linkStyle 11 stroke:transparent
 ```
-
 ---
 
 ## The life of a request
@@ -79,51 +92,55 @@ write-back — so the "smart" path costs exactly one extra external call versus 
 plain proxy. The sequence below is the entire pipeline
 ([app/pipeline.py](app/pipeline.py)):
 
-```plantuml
-@startuml
-skinparam shadowing false
-skinparam sequenceMessageAlign center
+```mermaid
+sequenceDiagram
+    actor Client
+    participant GW as Gateway<br/>(FastAPI)
+    participant R as Redis
+    participant V as Voyage AI
+    participant PG as Postgres<br/>+ pgvector
+    participant N4J as Neo4j
+    participant LLM as Claude API
 
-actor Client
-participant "Gateway\n(FastAPI)" as GW
-participant "Redis" as R
-participant "Voyage AI" as V
-participant "Postgres\n+ pgvector" as PG
-participant "Neo4j" as N4J
-participant "Claude API" as LLM
+    Client->>GW: POST /v1/chat<br/>{prompt, user_id, feature_tag}
+    GW->>R: rate-limit check (per user / minute)
 
-Client -> GW : POST /v1/chat\n{prompt, user_id, feature_tag}
-GW -> R : rate-limit check (per user / minute)
-alt limit exceeded
-  GW --> Client : 429 + Retry-After
-end
+    alt limit exceeded
+        GW-->>Client: 429 + Retry-After
+    else allowed
+        GW->>V: embed(prompt)
+        V-->>GW: 1024-dim vector
 
-GW -> V : embed(prompt)
-V --> GW : 1024-dim vector
+        GW->>PG: nearest neighbors<br/>(one query, two thresholds)
+        PG-->>GW: similar calls + scores
 
-GW -> PG : nearest neighbors\n(one query, two thresholds)
-PG --> GW : similar calls + scores
+        alt best match ≥ 0.95 (semantic cache HIT)
+            GW->>PG: log cost row (cache_hit, $0)
+            GW->>N4J: Call node → SERVED_FROM_CACHE → original
+            GW-->>Client: cached response<br/>(zero LLM cost, fast path)
+        else cache miss
+            GW->>N4J: walk 1–2 hops from seeds ≥ 0.75<br/>(SIMILAR_TO | INFORMED_BY)
+            N4J-->>GW: topical cluster of past calls
 
-alt best match ≥ 0.95 — semantic cache HIT
-  GW -> PG : log cost row (cache_hit, $0)
-  GW -> N4J : Call node —[SERVED_FROM_CACHE]→ original
-  GW --> Client : cached response\n(zero LLM cost, fast path)
-else miss — the interesting path
-  GW -> N4J : walk 1–2 hops from seeds ≥ 0.75\n(SIMILAR_TO | INFORMED_BY)
-  N4J --> GW : topical cluster of past calls
-  GW -> GW : build compact context blob\n(system prompt)
-  GW -> LLM : prompt + injected context\n(haiku ↔ sonnet routing)
-  alt primary model 429 / timeout / 5xx
-    GW -> LLM : retry on secondary tier
-  end
-  LLM --> GW : response + token usage
-  par write-back (parallel)
-    GW -> PG : cost row (tokens, $, latency, model)
-    GW -> N4J : new Call node + all edges
-  end
-  GW --> Client : response + metadata\n{context_used, cost, model, latency_ms}
-end
-@enduml
+            Note over GW: Build compact context blob<br/>(system prompt)
+
+            GW->>LLM: prompt + injected context<br/>(Haiku ↔ Sonnet routing)
+
+            alt primary model 429 / timeout / 5xx
+                GW->>LLM: retry on secondary tier
+            end
+
+            LLM-->>GW: response + token usage
+
+            par write-back
+                GW->>PG: cost row<br/>(tokens, $, latency, model)
+            and
+                GW->>N4J: new Call node + all edges
+            end
+
+            GW-->>Client: response + metadata<br/>{context_used, cost, model, latency_ms}
+        end
+    end
 ```
 
 ---
@@ -135,27 +152,30 @@ what let tomorrow's calls find today's; `INFORMED_BY` is the proof-of-value
 edge — it records which past calls *actually* shaped a given answer, so you can
 audit exactly where any response's grounding came from.
 
-```plantuml
-@startuml
-skinparam shadowing false
-skinparam linetype polyline
+```mermaid
+flowchart LR
+    U["User"]
+    C["Call<br/>(this request)"]
+    C2["Call<br/>(past request)"]
+    F["Feature"]
+    M["Model"]
+    P["Provider"]
 
-rectangle "User" as U #E8F0FE
-rectangle "Call\n(this request)" as C #FFF4E5
-rectangle "Call\n(past request)" as C2 #FFF4E5
-rectangle "Feature" as F #E6F4EA
-rectangle "Model" as M #F3E8FD
-rectangle "Provider" as P #FDE8E8
+    style U fill:#E8F0FE,stroke:#333
+    style C fill:#FFF4E5,stroke:#333
+    style C2 fill:#FFF4E5,stroke:#333
+    style F fill:#E6F4EA,stroke:#333
+    style M fill:#F3E8FD,stroke:#333
+    style P fill:#FDE8E8,stroke:#333
 
-U --> C : MADE
-C --> F : TAGGED
-C --> M : USED
-C --> P : ROUTED_TO
-C ..> P : FAILED_OVER_TO\n(only when fallback fired)
-C --> C2 : SIMILAR_TO {score}\n(grows the memory)
-C --> C2 : INFORMED_BY\n(context actually injected)
-C ..> C2 : SERVED_FROM_CACHE {score}\n(cache hits, audit trail)
-@enduml
+    U -->|MADE| C
+    C -->|TAGGED| F
+    C -->|USED| M
+    C -->|ROUTED_TO| P
+    C -.->|FAILED_OVER_TO<br/>(only when fallback fired)| P
+    C -->|SIMILAR_TO {score}<br/>(grows the memory)| C2
+    C -->|INFORMED_BY<br/>(context actually injected)| C2
+    C -.->|SERVED_FROM_CACHE {score}<br/>(cache hits, audit trail)| C2
 ```
 
 Division of labor: **pgvector finds** (nearest-neighbor over embeddings — one
