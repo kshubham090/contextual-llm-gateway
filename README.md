@@ -17,9 +17,8 @@ memory compounds.
 **It's not a faster gateway — it's a gateway that makes the LLM smarter about
 your domain the more it's used.**
 
-> All diagrams below are PlantUML. Render them at [plantuml.com/plantuml](https://www.plantuml.com/plantuml),
-> with the PlantUML extension in VS Code / IntelliJ, or any Markdown previewer
-> with PlantUML support.
+> All diagrams below are Mermaid — GitHub renders them natively, and they work
+> in VS Code's built-in Markdown preview.
 
 ---
 
