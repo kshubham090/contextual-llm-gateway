@@ -144,19 +144,18 @@ sequenceDiagram
 ```
 
 ---
-
 ## The memory graph
 
 This is the data model that makes the system compound. `SIMILAR_TO` edges are
 what let tomorrow's calls find today's; `INFORMED_BY` is the proof-of-value
-edge — it records which past calls *actually* shaped a given answer, so you can
+edge—it records which past calls *actually* shaped a given answer, so you can
 audit exactly where any response's grounding came from.
 
 ```mermaid
 flowchart LR
     U["User"]
-    C["Call<br/>(this request)"]
-    C2["Call<br/>(past request)"]
+    C["Call<br/>this request"]
+    C2["Call<br/>past request"]
     F["Feature"]
     M["Model"]
     P["Provider"]
@@ -172,13 +171,20 @@ flowchart LR
     C -->|TAGGED| F
     C -->|USED| M
     C -->|ROUTED_TO| P
-    C -.->|FAILED_OVER_TO<br/>(only when fallback fired)| P
-    C -->|SIMILAR_TO {score}<br/>(grows the memory)| C2
-    C -->|INFORMED_BY<br/>(context actually injected)| C2
-    C -.->|SERVED_FROM_CACHE {score}<br/>(cache hits, audit trail)| C2
-```
+    C -.->|FAILED_OVER_TO| P
+    C -->|SIMILAR_TO score| C2
+    C -->|INFORMED_BY| C2
+    C -.->|SERVED_FROM_CACHE score| C2
 
-Division of labor: **pgvector finds** (nearest-neighbor over embeddings — one
+```
+**Edge semantics**
+
+- `FAILED_OVER_TO` — only present when automatic model fallback is triggered.
+- `SIMILAR_TO {score}` — semantic similarity between calls; higher scores make future retrieval more likely.
+- `INFORMED_BY` — indicates that context from the past call was actually injected into the prompt.
+- `SERVED_FROM_CACHE {score}` — records semantic cache hits and the similarity score that produced the hit.
+
+Division of labor: **pgvector finds** (nearest-neighbor over embeddings—one
 HNSW-indexed query returns both cache candidates and graph seeds), **Neo4j
 connects** (from those seeds, a 1–2 hop walk pulls in follow-ups and sibling
 calls that pure vector similarity misses). One embedding store, no duplication.
