@@ -63,6 +63,7 @@ class Database:
         rows = await self.pool.fetch(
             """
             SELECT id, prompt, response, feature_tag,
+                   extract(epoch FROM created_at) AS created_epoch,
                    1 - (embedding <=> $1::vector) AS similarity
             FROM calls
             WHERE embedding IS NOT NULL
@@ -80,6 +81,7 @@ class Database:
                 "prompt": r["prompt"],
                 "response": r["response"],
                 "feature_tag": r["feature_tag"],
+                "created_epoch": float(r["created_epoch"]),
                 "similarity": float(r["similarity"]),
             }
             for r in rows

@@ -6,6 +6,7 @@
 
 ### An LLM gateway with memory — every call makes the next one smarter
 
+[![CI](https://github.com/kshubham090/contextual-llm-gateway/actions/workflows/ci.yml/badge.svg)](https://github.com/kshubham090/contextual-llm-gateway/actions/workflows/ci.yml)
 [![Python](https://img.shields.io/badge/Python-3.12-3776AB?logo=python&logoColor=white)](https://www.python.org/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-async-009688?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
 [![Neo4j](https://img.shields.io/badge/Neo4j-memory_graph-4581C3?logo=neo4j&logoColor=white)](https://neo4j.com/)
@@ -98,8 +99,10 @@ flowchart LR
 
 One embedding call serves three purposes — cache lookup, graph seeding, and
 write-back — so the "smart" path costs exactly one extra external call versus a
-plain proxy. The sequence below is the entire pipeline
-([app/pipeline.py](app/pipeline.py)):
+plain proxy. Persistence happens **off the request path**: the client gets its
+response as soon as the LLM answers, and the Postgres/Neo4j writes complete in
+the background (pending writes are drained on shutdown). The sequence below is
+the entire pipeline ([app/pipeline.py](app/pipeline.py)):
 
 ```mermaid
 sequenceDiagram
@@ -131,7 +134,7 @@ sequenceDiagram
             GW->>N4J: walk 1–2 hops from seeds ≥ 0.75<br/>(SIMILAR_TO | INFORMED_BY)
             N4J-->>GW: topical cluster of past calls
 
-            Note over GW: Build compact context blob<br/>(system prompt)
+            Note over GW: Rank candidates:<br/>similarity × recency × feature-affinity<br/>then build compact context blob
 
             GW->>LLM: prompt + injected context<br/>(Haiku ↔ Sonnet routing)
 
@@ -141,13 +144,13 @@ sequenceDiagram
 
             LLM-->>GW: response + token usage
 
-            par write-back
+            GW-->>Client: response + metadata<br/>{context_used, cost, model, latency_ms}
+
+            par background write-back (off the request path)
                 GW->>PG: cost row<br/>(tokens, $, latency, model)
             and
                 GW->>N4J: new Call node + all edges
             end
-
-            GW-->>Client: response + metadata<br/>{context_used, cost, model, latency_ms}
         end
     end
 ```
@@ -200,6 +203,18 @@ HNSW-indexed query returns both cache candidates and graph seeds), **Neo4j
 connects** (from those seeds, a 1–2 hop walk pulls in follow-ups and sibling
 calls that pure vector similarity misses). One embedding store, no duplication.
 
+The pooled neighborhood is then **ranked, not just truncated**:
+
+```
+score = 0.5 · similarity + 0.3 · recency + 0.2 · feature_match
+```
+
+Direct vector matches keep their pgvector score; hop-discovered calls get the
+similarity floor (related enough to be in the neighborhood, never outranking a
+direct match on similarity alone). Recency decays exponentially with a 7-day
+half-life, and calls from the same feature get an affinity boost. All weights
+are env-tunable.
+
 ---
 
 ## Why this belongs in production
@@ -222,9 +237,20 @@ is built for exactly those:
 - **"Can we audit what the model was told?"** Every response's metadata lists
   the exact `context_used` call IDs, and the graph stores `INFORMED_BY` edges —
   grounding is inspectable, not a black box.
+- **"What happened to request X?"** Structured JSON logging with a request ID
+  assigned per request (echoed back in the `X-Request-ID` header) and threaded
+  through every pipeline log line — cache hits, context ranking, LLM calls,
+  write-back failures — so one request's journey greps cleanly out of
+  concurrent traffic.
+- **"Does the client wait on your bookkeeping?"** No — persistence is off the
+  request path. The response returns as soon as the LLM answers; Postgres and
+  Neo4j writes complete in background tasks (drained on shutdown, failures
+  logged, never user-facing).
 - **Operationally boring in the good way** — one `docker compose up`, health
   checks on every service, all thresholds env-tunable, provider abstracted
-  behind an interface so adding OpenAI is a subclass, not a rewrite.
+  behind an interface so adding OpenAI is a subclass, not a rewrite. CI runs
+  lint + a 24-test suite (every external dependency faked — no keys needed)
+  on every push.
 
 ### …and in a developer's daily life
 
@@ -368,21 +394,35 @@ RETURN c, r, o LIMIT 100
 
 All thresholds are environment variables (see `.env.example`): cache-hit
 threshold (`0.95`), graph similarity threshold (`0.75`), context size and
-snippet length, routing cutoff, rate limit per minute, model choices.
+snippet length, ranking weights (similarity/recency/feature) and recency
+half-life, routing cutoff, rate limit per minute, model choices.
+
+## Development
+
+```bash
+pip install -r requirements-dev.txt
+pytest -q          # 24 tests, all external dependencies faked — no keys needed
+ruff check .       # lint
+```
+
+CI (GitHub Actions) runs both on every push and pull request.
 
 ## Project layout
 
 ```
 app/
-  main.py        FastAPI app + endpoints
-  pipeline.py    the request flow (rate limit → embed → cache → graph → LLM → write-back)
+  main.py        FastAPI app, endpoints, request-ID middleware
+  pipeline.py    the request flow (rate limit → embed → cache → graph → rank → LLM → background write-back)
   providers.py   provider interface, Anthropic impl, routing + fallback, pricing
   db.py          Postgres: call log, pgvector search, usage rollups
   graph.py       Neo4j: write-back, 1–2 hop neighborhood expansion
   embeddings.py  Voyage AI client
   rate_limit.py  Redis fixed-window limiter
+  logs.py        structured JSON logging + request IDs
   config.py      env-driven settings
+tests/           unit + pipeline tests, every external dependency faked
 scripts/
   seed_demo.py     seed the graph with a fictional domain
   demo_compare.py  side-by-side: same question, graph off vs on
+.github/workflows/ci.yml   lint + tests on every push
 ```

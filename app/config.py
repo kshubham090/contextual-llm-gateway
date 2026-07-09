@@ -23,7 +23,14 @@ class Settings(BaseSettings):
     cache_hit_threshold: float = 0.95   # >= this cosine similarity → serve cached response
     graph_similarity_threshold: float = 0.75  # >= this → "related", inject as context
     graph_context_limit: int = 6        # max past calls injected into a new prompt
+    graph_candidate_pool: int = 24      # neighborhood size fetched before ranking
     context_snippet_chars: int = 700    # trim injected prompts/responses to this length
+
+    # Hybrid context ranking: score = w_sim*similarity + w_rec*recency + w_feat*feature_match
+    rank_weight_similarity: float = 0.5
+    rank_weight_recency: float = 0.3
+    rank_weight_feature: float = 0.2
+    recency_half_life_days: float = 7.0  # recency score halves every N days
 
     # Routing
     simple_model: str = "claude-haiku-4-5"

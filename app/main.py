@@ -1,16 +1,22 @@
+import logging
 from contextlib import asynccontextmanager
+from time import perf_counter
 
 import anthropic
 import httpx
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 
 from .db import Database
 from .embeddings import EmbeddingClient
 from .graph import MemoryGraph
+from .logs import log, new_request_id, setup_logging
 from .pipeline import Pipeline, RateLimitExceeded
 from .providers import Router
 from .rate_limit import RateLimiter
 from .schemas import ChatRequest, ChatResponse, UsageRow
+
+setup_logging()
+logger = logging.getLogger("gateway.http")
 
 db = Database()
 graph = MemoryGraph()
@@ -26,6 +32,7 @@ async def lifespan(app: FastAPI):
     await graph.connect()
     await rate_limiter.connect()
     yield
+    await pipeline.drain()  # flush pending background write-backs
     await db.close()
     await graph.close()
     await rate_limiter.close()
@@ -38,6 +45,23 @@ app = FastAPI(
     "embedded, linked to related past calls, and used to ground future requests.",
     lifespan=lifespan,
 )
+
+
+@app.middleware("http")
+async def request_context(request: Request, call_next):
+    """Assign a request ID, echo it in the response, and emit one JSON access
+    log line per request — the anchor for every pipeline log with that ID."""
+    rid = new_request_id()
+    start = perf_counter()
+    response = await call_next(request)
+    response.headers["X-Request-ID"] = rid
+    log(
+        logger, "request",
+        method=request.method, path=request.url.path,
+        status=response.status_code,
+        duration_ms=int((perf_counter() - start) * 1000),
+    )
+    return response
 
 
 @app.post("/v1/chat", response_model=ChatResponse)

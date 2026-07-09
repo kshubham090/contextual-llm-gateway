@@ -47,7 +47,8 @@ class MemoryGraph:
                 UNWIND nodes AS node
                 WITH DISTINCT node WHERE node IS NOT NULL
                 RETURN node.id AS id, node.prompt AS prompt,
-                       node.response AS response, node.feature_tag AS feature_tag
+                       node.response AS response, node.feature_tag AS feature_tag,
+                       node.created_at.epochSeconds AS created_epoch
                 ORDER BY node.created_at DESC
                 LIMIT $limit
                 """,
