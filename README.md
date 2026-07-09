@@ -1,4 +1,29 @@
-# Contextual LLM Gateway
+<div align="center">
+
+# **Lowq X2**
+
+## Contextual LLM Gateway
+
+### An LLM gateway with memory — every call makes the next one smarter
+
+[![Python](https://img.shields.io/badge/Python-3.12-3776AB?logo=python&logoColor=white)](https://www.python.org/)
+[![FastAPI](https://img.shields.io/badge/FastAPI-async-009688?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
+[![Neo4j](https://img.shields.io/badge/Neo4j-memory_graph-4581C3?logo=neo4j&logoColor=white)](https://neo4j.com/)
+[![Postgres](https://img.shields.io/badge/Postgres-pgvector-4169E1?logo=postgresql&logoColor=white)](https://github.com/pgvector/pgvector)
+[![Redis](https://img.shields.io/badge/Redis-rate_limiting-DC382D?logo=redis&logoColor=white)](https://redis.io/)
+[![Claude](https://img.shields.io/badge/Claude_API-Haiku_%2F_Sonnet-D97757?logo=anthropic&logoColor=white)](https://platform.claude.com/)
+[![Docker](https://img.shields.io/badge/Docker-compose_up-2496ED?logo=docker&logoColor=white)](https://docs.docker.com/compose/)
+
+**[Architecture](#system-architecture)** ·
+**[Request flow](#the-life-of-a-request)** ·
+**[Memory graph](#the-memory-graph)** ·
+**[Why production](#why-this-belongs-in-production)** ·
+**[Quickstart](#quickstart)** ·
+**[Demo](#the-demo-that-lands)**
+
+</div>
+
+---
 
 An LLM gateway that doesn't just proxy and cache calls — it builds a **knowledge
 graph of every call it handles** and feeds relevant history back into new calls,
