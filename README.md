@@ -50,15 +50,6 @@ flowchart LR
     voyage(["Voyage AI<br/>voyage-3.5 embeddings"])
     claude(["Claude API<br/>Haiku 4.5 / Sonnet 5"])
 
-    %% Colors
-    style gateway fill:#ffffff,stroke:#666,stroke-width:1px
-    style rl fill:#ffffff,stroke:#333
-    style emb fill:#ffffff,stroke:#333
-    style cache fill:#ffffff,stroke:#333
-    style ctx fill:#ffffff,stroke:#333
-    style router fill:#ffffff,stroke:#333
-    style wb fill:#ffffff,stroke:#333
-
     client -->|POST /v1/chat| rl
 
     rl --> redis
@@ -69,19 +60,12 @@ flowchart LR
     wb -->|cost + usage row| pg
     wb -->|Call node + edges| neo
 
-    %% Hidden ordering links (approximation)
-    rl -.-> emb
-    emb -.-> cache
-    cache -.-> ctx
-    ctx -.-> router
-    router -.-> wb
-
-    %% Make them invisible
-    linkStyle 7 stroke:transparent
-    linkStyle 8 stroke:transparent
-    linkStyle 9 stroke:transparent
-    linkStyle 10 stroke:transparent
-    linkStyle 11 stroke:transparent
+    %% Invisible links: keep the pipeline stages in request order
+    rl ~~~ emb
+    emb ~~~ cache
+    cache ~~~ ctx
+    ctx ~~~ router
+    router ~~~ wb
 ```
 ---
 
@@ -160,12 +144,14 @@ flowchart LR
     M["Model"]
     P["Provider"]
 
-    style U fill:#E8F0FE,stroke:#333
-    style C fill:#FFF4E5,stroke:#333
-    style C2 fill:#FFF4E5,stroke:#333
-    style F fill:#E6F4EA,stroke:#333
-    style M fill:#F3E8FD,stroke:#333
-    style P fill:#FDE8E8,stroke:#333
+    %% Explicit dark text on light fills — stays readable in GitHub dark mode,
+    %% where the theme's default text color is light grey.
+    style U fill:#E8F0FE,stroke:#5B7DB1,color:#1a1a1a
+    style C fill:#FFF4E5,stroke:#C98A2B,color:#1a1a1a
+    style C2 fill:#FFF4E5,stroke:#C98A2B,color:#1a1a1a
+    style F fill:#E6F4EA,stroke:#4C9A66,color:#1a1a1a
+    style M fill:#F3E8FD,stroke:#8E5BB1,color:#1a1a1a
+    style P fill:#FDE8E8,stroke:#C25B5B,color:#1a1a1a
 
     U -->|MADE| C
     C -->|TAGGED| F
