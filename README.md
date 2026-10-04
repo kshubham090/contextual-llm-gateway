@@ -1,428 +1,203 @@
 <div align="center">
 
-# **Lowq X2**
+# Lowq X2 · Contextual LLM Gateway
 
-## Contextual LLM Gateway
-
-### An LLM gateway with memory — every call makes the next one smarter
+**Give repeated LLM requests scoped memory, traceable context, and measurable operating limits.**
 
 [![CI](https://github.com/kshubham090/contextual-llm-gateway/actions/workflows/ci.yml/badge.svg)](https://github.com/kshubham090/contextual-llm-gateway/actions/workflows/ci.yml)
-[![Python](https://img.shields.io/badge/Python-3.12-3776AB?logo=python&logoColor=white)](https://www.python.org/)
-[![FastAPI](https://img.shields.io/badge/FastAPI-async-009688?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
-[![Neo4j](https://img.shields.io/badge/Neo4j-memory_graph-4581C3?logo=neo4j&logoColor=white)](https://neo4j.com/)
-[![Postgres](https://img.shields.io/badge/Postgres-pgvector-4169E1?logo=postgresql&logoColor=white)](https://github.com/pgvector/pgvector)
-[![Redis](https://img.shields.io/badge/Redis-rate_limiting-DC382D?logo=redis&logoColor=white)](https://redis.io/)
-[![Claude](https://img.shields.io/badge/Claude_API-Haiku_%2F_Sonnet-D97757?logo=anthropic&logoColor=white)](https://platform.claude.com/)
-[![Docker](https://img.shields.io/badge/Docker-compose_up-2496ED?logo=docker&logoColor=white)](https://docs.docker.com/compose/)
+[![Python](https://img.shields.io/badge/Python-3.12%2B-3776AB)](https://www.python.org/)
+[![FastAPI](https://img.shields.io/badge/API-FastAPI-009688)](https://fastapi.tiangolo.com/)
+[![Memory](https://img.shields.io/badge/Memory-pgvector%20%2B%20Neo4j-4581C3)](docs/architecture.md)
 
-**[Architecture](#system-architecture)** ·
-**[Request flow](#the-life-of-a-request)** ·
-**[Memory graph](#the-memory-graph)** ·
-**[Why production](#why-this-belongs-in-production)** ·
-**[Quickstart](#quickstart)** ·
-**[Demo](#the-demo-that-lands)**
+[Quickstart](#quickstart) · [Architecture](docs/architecture.md) · [Use cases](docs/use-cases.md) · [Evaluation](docs/evaluation.md) · [Operations](docs/operations.md) · [Security](docs/security.md)
 
 </div>
 
----
+An LLM already knows general concepts. It usually does not know **your service's rollback caveat, your experiment's calibration rule, or your customer's previous connector issue**. This gateway retrieves related past interactions from a scoped graph and supplies them as context to the next request.
 
-An LLM gateway that doesn't just proxy and cache calls — it builds a **knowledge
-graph of every call it handles** and feeds relevant history back into new calls,
-so responses get better the more the system is used.
+The core idea is unchanged: **traffic becomes retrievable memory**. PostgreSQL with pgvector finds related calls; Neo4j connects their neighborhoods; a bounded ranking stage selects context; an LLM answers; a durable event records new memory. Response metadata identifies the exact calls supplied to the model. These identifiers establish context provenance, not proof that an answer is correct.
 
-Most gateways are dumb pipes with a cache bolted on: request comes in, check
-for an exact match, miss, forward, log. This one treats every call as a node in
-a growing Neo4j graph — connected to the user who made it, the feature it came
-from, the model that served it, and the semantically related calls that came
-before it. A new prompt doesn't get a binary cache hit/miss: the gateway walks
-the graph neighborhood of similar past calls and injects that context into the
-request, so the LLM answers with awareness of related history it was never
-explicitly given. Every response is then written back into the graph, so the
-memory compounds.
+This repository provides a hardened, testable foundation with measured local embedding improvements. Production readiness depends on the deployment, data policy, workload, and provider behavior. The measurements below cover warm local inference; end-to-end gateway performance and answer quality require separate evaluation.
 
-**It's not a faster gateway — it's a gateway that makes the LLM smarter about
-your domain the more it's used.**
+## What is implemented
 
-> All diagrams below are Mermaid — GitHub renders them natively, and they work
-> in VS Code's built-in Markdown preview.
+| Concern | Behavior |
+|---|---|
+| Identity and memory | Bearer keys map to tenants. Cache reads, vector retrieval, and graph traversal are bounded by tenant, user, and feature. |
+| Cache correctness | An indexed exact-prompt lookup runs before embedding, with generation configuration, token budget, and TTL checks. Semantic reuse requires an explicit request flag. |
+| Durable memory | Billing and a graph event commit in one PostgreSQL transaction before success. A leased outbox worker projects events into Neo4j. |
+| Failure control | Request limits, admission bounds, provider concurrency limits, timeouts, model fallback, and circuit breaking. |
+| Efficient inference | Bounded embedding batches, reusable clients, a scoped TTL embedding cache, and optional local CPU/CUDA/MPS inference. |
+| Privacy control | `store: false` keeps prompt, response, embedding, and graph payload out of persistent memory and the embedding cache; content-free accounting remains. |
+| Measurement | Request IDs, stage timing metadata, health/readiness probes, Prometheus metrics, synthetic evaluation fixtures, and a reproducible embedding benchmark. |
 
----
-
-## System architecture
-
-Five backing services, one FastAPI process, each store doing the one thing it's
-best at: Redis holds short-lived counters, pgvector does the vector math,
-Neo4j does the relationship traversal, and the Claude API is reached through a
-provider abstraction so a second provider can slot in without touching the
-pipeline.
+## Architecture
 
 ```mermaid
 flowchart LR
-    client["Client<br/>(any app or service)"]
-
-    subgraph gateway["Contextual LLM Gateway — FastAPI"]
-        direction LR
-        rl["Rate Limiter"]
-        emb["Embedding<br/>Client"]
-        cache["Semantic Cache<br/>(similarity ≥ 0.95)"]
-        ctx["Graph Context<br/>Retriever (≥ 0.75)"]
-        router["Model Router<br/>+ Fallback"]
-        wb["Write-back<br/>(parallel)"]
-    end
-
-    redis[("Redis<br/>per-user windows")]
-    pg[("Postgres + pgvector<br/>call log · cost rows · HNSW index")]
-    neo[("Neo4j<br/>memory graph")]
-    voyage(["Voyage AI<br/>voyage-3.5 embeddings"])
-    claude(["Claude API<br/>Haiku 4.5 / Sonnet 5"])
-
-    client -->|POST /v1/chat| rl
-
-    rl --> redis
-    emb --> voyage
-    cache -->|nearest-neighbor query| pg
-    ctx -->|1–2 hop walk from seeds| neo
-    router -->|routed call<br/>auto-fallback on 429/timeout/5xx| claude
-    wb -->|cost + usage row| pg
-    wb -->|Call node + edges| neo
-
-    %% Invisible links: keep the pipeline stages in request order
-    rl ~~~ emb
-    emb ~~~ cache
-    cache ~~~ ctx
-    ctx ~~~ router
-    router ~~~ wb
-```
----
-
-## The life of a request
-
-One embedding call serves three purposes — cache lookup, graph seeding, and
-write-back — so the "smart" path costs exactly one extra external call versus a
-plain proxy. Persistence happens **off the request path**: the client gets its
-response as soon as the LLM answers, and the Postgres/Neo4j writes complete in
-the background (pending writes are drained on shutdown). The sequence below is
-the entire pipeline ([app/pipeline.py](app/pipeline.py)):
-
-```mermaid
-sequenceDiagram
-    actor Client
-    participant GW as Gateway<br/>(FastAPI)
-    participant R as Redis
-    participant V as Voyage AI
-    participant PG as Postgres<br/>+ pgvector
-    participant N4J as Neo4j
-    participant LLM as Claude API
-
-    Client->>GW: POST /v1/chat<br/>{prompt, user_id, feature_tag}
-    GW->>R: rate-limit check (per user / minute)
-
-    alt limit exceeded
-        GW-->>Client: 429 + Retry-After
-    else allowed
-        GW->>V: embed(prompt)
-        V-->>GW: 1024-dim vector
-
-        GW->>PG: nearest neighbors<br/>(one query, two thresholds)
-        PG-->>GW: similar calls + scores
-
-        alt best match ≥ 0.95 (semantic cache HIT)
-            GW->>PG: log cost row (cache_hit, $0)
-            GW->>N4J: Call node → SERVED_FROM_CACHE → original
-            GW-->>Client: cached response<br/>(zero LLM cost, fast path)
-        else cache miss
-            GW->>N4J: walk 1–2 hops from seeds ≥ 0.75<br/>(SIMILAR_TO | INFORMED_BY)
-            N4J-->>GW: topical cluster of past calls
-
-            Note over GW: Rank candidates:<br/>similarity × recency × feature-affinity<br/>then build compact context blob
-
-            GW->>LLM: prompt + injected context<br/>(Haiku ↔ Sonnet routing)
-
-            alt primary model 429 / timeout / 5xx
-                GW->>LLM: retry on secondary tier
-            end
-
-            LLM-->>GW: response + token usage
-
-            GW-->>Client: response + metadata<br/>{context_used, cost, model, latency_ms}
-
-            par background write-back (off the request path)
-                GW->>PG: cost row<br/>(tokens, $, latency, model)
-            and
-                GW->>N4J: new Call node + all edges
-            end
-        end
-    end
+    C[Trusted application] --> A[Authenticate tenant<br/>admit and rate limit]
+    A --> X{Scoped exact cache hit?}
+    X -->|yes| T[Commit accounting<br/>+ optional graph event]
+    X -->|no| E[Embed when needed<br/>in bounded batches]
+    E --> P[(PostgreSQL + pgvector)]
+    P --> K{Opt-in semantic hit?}
+    K -->|yes| T
+    K -->|no| G[(Scoped Neo4j neighborhood)]
+    G --> B[Rank and budget<br/>untrusted context]
+    B --> L[LLM router<br/>bounded fallback]
+    L --> T
+    T --> R[Answer + provenance + timings]
+    T --> O[(Durable outbox)]
+    O --> W[Leased replay worker]
+    W --> G
 ```
 
----
-## The memory graph
-
-This is the data model that makes the system compound. `SIMILAR_TO` edges are
-what let tomorrow's calls find today's; `INFORMED_BY` is the proof-of-value
-edge—it records which past calls *actually* shaped a given answer, so you can
-audit exactly where any response's grounding came from.
-
-```mermaid
-flowchart LR
-    U["User"]
-    C["Call<br/>this request"]
-    C2["Call<br/>past request"]
-    F["Feature"]
-    M["Model"]
-    P["Provider"]
-
-    %% Explicit dark text on light fills — stays readable in GitHub dark mode,
-    %% where the theme's default text color is light grey.
-    style U fill:#E8F0FE,stroke:#5B7DB1,color:#1a1a1a
-    style C fill:#FFF4E5,stroke:#C98A2B,color:#1a1a1a
-    style C2 fill:#FFF4E5,stroke:#C98A2B,color:#1a1a1a
-    style F fill:#E6F4EA,stroke:#4C9A66,color:#1a1a1a
-    style M fill:#F3E8FD,stroke:#8E5BB1,color:#1a1a1a
-    style P fill:#FDE8E8,stroke:#C25B5B,color:#1a1a1a
-
-    U -->|MADE| C
-    C -->|TAGGED| F
-    C -->|USED| M
-    C -->|ROUTED_TO| P
-    C -.->|FAILED_OVER_TO| P
-    C -->|SIMILAR_TO score| C2
-    C -->|INFORMED_BY| C2
-    C -.->|SERVED_FROM_CACHE score| C2
-
-```
-**Edge semantics**
-
-- `FAILED_OVER_TO` — only present when automatic model fallback is triggered.
-- `SIMILAR_TO {score}` — semantic similarity between calls; higher scores make future retrieval more likely.
-- `INFORMED_BY` — indicates that context from the past call was actually injected into the prompt.
-- `SERVED_FROM_CACHE {score}` — records semantic cache hits and the similarity score that produced the hit.
-
-Division of labor: **pgvector finds** (nearest-neighbor over embeddings—one
-HNSW-indexed query returns both cache candidates and graph seeds), **Neo4j
-connects** (from those seeds, a 1–2 hop walk pulls in follow-ups and sibling
-calls that pure vector similarity misses). One embedding store, no duplication.
-
-The pooled neighborhood is then **ranked, not just truncated**:
-
-```
-score = 0.5 · similarity + 0.3 · recency + 0.2 · feature_match
-```
-
-Direct vector matches keep their pgvector score; hop-discovered calls get the
-similarity floor (related enough to be in the neighborhood, never outranking a
-direct match on similarity alone). Recency decays exponentially with a 7-day
-half-life, and calls from the same feature get an affinity boost. All weights
-are env-tunable.
-
----
-
-## Why this belongs in production
-
-A gateway earns its place in a production stack by answering the questions
-platform teams actually get asked — and the boring infra half of this project
-is built for exactly those:
-
-- **"What is the LLM costing us, and who's spending it?"** Every call writes a
-  cost row attributed to user, feature, and day, priced from real token usage.
-  `GET /v1/usage` is the finance answer, not an estimate.
-- **"Why is the bill growing?"** The semantic cache (≥ 0.95) short-circuits
-  near-duplicate prompts at zero LLM cost — in real products a meaningful slice
-  of traffic is users asking the same thing in slightly different words.
-- **"What happens when the provider has a bad day?"** Rate-limit errors,
-  timeouts, and 5xxs auto-retry on the secondary model tier, and the failover
-  is recorded (`FAILED_OVER_TO`) so degraded periods are visible after the fact.
-- **"Can one noisy client take us down?"** Per-user rate limiting in Redis,
-  with proper `429 + Retry-After` semantics.
-- **"Can we audit what the model was told?"** Every response's metadata lists
-  the exact `context_used` call IDs, and the graph stores `INFORMED_BY` edges —
-  grounding is inspectable, not a black box.
-- **"What happened to request X?"** Structured JSON logging with a request ID
-  assigned per request (echoed back in the `X-Request-ID` header) and threaded
-  through every pipeline log line — cache hits, context ranking, LLM calls,
-  write-back failures — so one request's journey greps cleanly out of
-  concurrent traffic.
-- **"Does the client wait on your bookkeeping?"** No — persistence is off the
-  request path. The response returns as soon as the LLM answers; Postgres and
-  Neo4j writes complete in background tasks (drained on shutdown, failures
-  logged, never user-facing).
-- **Operationally boring in the good way** — one `docker compose up`, health
-  checks on every service, all thresholds env-tunable, provider abstracted
-  behind an interface so adding OpenAI is a subclass, not a rewrite. CI runs
-  lint + a 24-test suite (every external dependency faked — no keys needed)
-  on every push.
-
-### …and in a developer's daily life
-
-The graph memory is what changes the day-to-day experience. Any team that
-points repeated, domain-specific questions at an LLM hits the same wall: the
-model knows the world, but not *your* world. This gateway closes that gap
-passively — nobody curates a knowledge base; the knowledge base is the traffic:
-
-- **Internal platform copilot** — engineers ask "how do I roll back?" about
-  *your* deploy tool. After a few weeks of traffic the gateway answers with
-  your bake times, your CLI commands, your gotchas (this is exactly what the
-  demo simulates).
-- **Support assistants that stop repeating themselves** — the hundredth ticket
-  about an edge case gets answered with the context of the first ninety-nine.
-- **Onboarding that compounds** — every question a new hire asks makes the next
-  new hire's answers better, automatically.
-- **Incident response** — "have we seen this error before?" is a graph
-  neighborhood lookup, and the answer arrives already inside the LLM's context.
-
-The `use_graph` / `use_cache` / `store` flags mean developers can A/B the
-memory's value on their own traffic, benchmark the latency overhead, and keep
-throwaway calls out of the graph — the system is measurable, not a leap of
-faith.
-
-### The honest tradeoff
-
-This adds latency and cost per call versus a plain cache: an embedding call, a
-pgvector query, a graph traversal, and a larger context all sit on the request
-path, and injected context bills as input tokens. The value proposition is
-**response quality on repeat/related domains, not raw speed**. If your traffic
-is one-off, unrelated prompts, a plain semantic cache beats this design — and
-the `use_graph` flag exists precisely so you can measure that on your own
-traffic instead of taking it on faith.
-
-**What's still missing before serious production use** (stated so nobody has
-to discover it): authentication on the gateway itself, per-tenant isolation of
-the memory graph (today the graph is shared — fine for a team tool, wrong for
-multi-tenant SaaS), streaming responses, and PII policy for what gets persisted
-into graph memory.
-
----
+Graph memory can improve continuity when past interactions contain useful facts. It also adds retrieval work, prompt tokens, and potential stale or incorrect context. Measure those tradeoffs on the intended workload. For general one-off questions, use `use_graph: false`.
 
 ## Quickstart
 
-```bash
-cp .env.example .env      # fill in ANTHROPIC_API_KEY and VOYAGE_API_KEY
-docker compose up --build
-```
-
-- Gateway: `http://localhost:8000` (interactive OpenAPI docs at `/docs`)
-- Neo4j browser: `http://localhost:7474` (user `neo4j`, password `gatewaypass`)
-  — open it during a demo to *show* the graph growing
-
-Run the app outside Docker (infra still in containers):
+Requires Python 3.12+ for local scripts, Docker Compose v2, an Anthropic API key, and a Voyage API key for the default embedding backend. Provider calls cost money. The fixture validator and unit tests do not need keys or running services.
 
 ```bash
-docker compose up postgres neo4j redis
-pip install -r requirements.txt
-uvicorn app.main:app --reload
+python -m venv .venv
+source .venv/bin/activate
+pip install -r requirements-dev.txt
+python scripts/evaluate.py validate
+pytest -q
 ```
 
-## API
+To start the gateway:
 
-### `POST /v1/chat`
+```bash
+cp .env.example .env
+python -c 'import secrets; print(secrets.token_hex(24))'
+```
+
+Generate separate random values for the gateway token, metrics token, and each infrastructure password. Fill in `.env`, including `ANTHROPIC_API_KEY`, `VOYAGE_API_KEY`, `POSTGRES_PASSWORD`, `NEO4J_PASSWORD`, and `REDIS_PASSWORD`. Set the gateway mapping to a JSON object such as `GATEWAY_API_KEYS={"<your-random-token>":"demo-team"}`. An empty mapping is rejected at startup.
+
+```bash
+docker compose up --build -d
+curl --fail http://127.0.0.1:8000/health/ready
+```
+
+The API is at [localhost:8000](http://127.0.0.1:8000/docs); the Neo4j browser is at [localhost:7474](http://127.0.0.1:7474). Compose exposes ports on loopback only. It is a local development stack, not a public deployment template.
+
+Set the client token to the same secret used as a key in `GATEWAY_API_KEYS`:
+
+```bash
+export GATEWAY_API_KEY='<your-random-token>'
+curl --fail-with-body http://127.0.0.1:8000/v1/chat \
+  -H "Authorization: Bearer $GATEWAY_API_KEY" \
+  -H 'Content-Type: application/json' \
+  -d '{"prompt":"Our Orbit rollback restores the image but requires a separate config revert. Summarize that rule.","user_id":"engineer-42","feature_tag":"deployments","max_tokens":250}'
+```
+
+For a host-run app, start `docker compose up -d postgres neo4j redis`, set the host connection URLs in `.env` to the matching passwords, and run `uvicorn app.main:app --reload`.
+
+## API contract
+
+`POST /v1/chat` accepts:
 
 ```json
 {
-  "prompt": "How should I configure rollbacks?",
-  "user_id": "u-42",
-  "feature_tag": "deploys",
-  "max_tokens": 700,
+  "prompt": "What should I do when an Orbit release and its configuration both need rollback?",
+  "user_id": "engineer-42",
+  "feature_tag": "deployments",
+  "max_tokens": 500,
   "use_graph": true,
   "use_cache": true,
+  "cache_mode": "exact",
   "store": true
 }
 ```
 
-Response — the answer plus full gateway metadata:
-
-```json
-{
-  "response": "...",
-  "meta": {
-    "call_id": "…",
-    "cache_hit": false,
-    "context_used": ["…call ids injected as context…"],
-    "model": "claude-haiku-4-5",
-    "provider": "anthropic",
-    "fallback_used": false,
-    "tokens_in": 812, "tokens_out": 304,
-    "cost": 0.002332, "latency_ms": 1843
-  }
-}
-```
-
-| Flag | Effect |
+| Option | Meaning |
 |---|---|
-| `use_graph: false` | bypass graph context — for A/B comparison |
-| `use_cache: false` | skip the semantic-cache fast path |
-| `store: false` | log cost only; keep the call out of graph memory |
+| `use_graph` | Supply selected scoped memory as context. Stored calls still build memory links when this is false. |
+| `use_cache` | Permit completion reuse when cache eligibility checks pass. |
+| `cache_mode` | `exact` by default. `semantic` allows approximate prompt matches and can change answer suitability. |
+| `store` | Persist reusable memory when true; retain only content-free accounting when false. Memory reads remain available. |
 
-### `GET /v1/usage?user_id=&feature_tag=`
+The response contains `response` and `meta`, including `call_id`, `context_used`, `cache_hit`, `cached_call_id`, `model`, `fallback_used`, `tokens_in`, `tokens_out`, `cost`, `cost_is_estimate`, `timings_ms`, `degraded`, and `memory_write`. A `queued` memory write means PostgreSQL committed the graph event; Neo4j visibility follows asynchronously. Cost is a generation estimate; embedding charges and infrastructure are excluded. Unknown model pricing is represented as `null` and counted as unpriced usage.
 
-Cost attribution rolled up by user / feature / day: calls, cache hits, tokens
-in/out, dollar cost, average latency.
+`GET /v1/usage` returns the authenticated tenant's accounting grouped by user, feature, and day. `GET /v1/graph/stats` returns scoped memory counts. Both accept optional `user_id` and `feature_tag` filters. `/health/live` and `/health/ready` support probes; `/metrics` requires its separate metrics bearer token.
 
-### `GET /v1/graph/stats`
+**Trust boundary:** a gateway bearer key belongs to a trusted application that supplies the `user_id`. Do not distribute a tenant credential to untrusted end users. [Security details](docs/security.md) explain the boundary, retention, and remaining responsibilities.
 
-Node and edge counts — watch the memory grow.
+## Six use cases with held-out questions
 
-## The demo that lands
+Each pack contains four synthetic memories, two questions absent from the seeds, expected fact aliases, and forbidden fact probes. Memory scopes are disjoint.
 
-1. Seed ~35 related calls about a fictional internal platform ("Orbit" at
-   Nimbus Labs). The domain facts live in the prompts — the way real users leak
-   context into questions — so the graph absorbs them:
+| Pack | What the held-out questions test |
+|---|---|
+| [Orbit deployment incidents](docs/use-cases.md#orbit-deployment-incidents) | Connect image rollback, configuration reversal, rollout gates, and audit references. |
+| [Cedar support continuity](docs/use-cases.md#cedar-support-continuity) | Recover a connector workaround and the escalation evidence. |
+| [Lantern experiment protocols](docs/use-cases.md#lantern-experiment-protocols) | Recall calibration, randomization, drift thresholds, and review ownership. |
+| [Quartz data migrations](docs/use-cases.md#quartz-data-migrations) | Reconstruct a dual-write window, per-tenant checksums, and rollback constraints. |
+| [Harbor maintenance training](docs/use-cases.md#harbor-maintenance-training) | Retrieve a fictional rig's qualified review and return-to-service checklist. |
+| [Meadow preview releases](docs/use-cases.md#meadow-preview-releases) | Recall synthetic-data requirements, expiry, access, and review responsibilities. |
 
-   ```bash
-   python scripts/seed_demo.py
-   ```
-
-2. Ask a fresh question the seed data never answered directly — twice, graph
-   off then graph on:
-
-   ```bash
-   python scripts/demo_compare.py
-   ```
-
-Without the graph, the model gives a generic "roll back your deploy" answer.
-With it, the answer talks about flight numbers, the 8-minute bake time, the
-config-revert gotcha, error-budget deploy gates — domain facts the caller never
-put in the prompt. That side-by-side is the entire pitch in one screenshot.
-
-Useful Neo4j browser query while demoing:
-
-```cypher
-MATCH (c:Call)-[r:SIMILAR_TO|INFORMED_BY]->(o:Call)
-RETURN c, r, o LIMIT 100
-```
-
-## Tuning
-
-All thresholds are environment variables (see `.env.example`): cache-hit
-threshold (`0.95`), graph similarity threshold (`0.75`), context size and
-snippet length, ranking weights (similarity/recency/feature) and recency
-half-life, routing cutoff, rate limit per minute, model choices.
-
-## Development
+Run a single comparison against the running gateway:
 
 ```bash
-pip install -r requirements-dev.txt
-pytest -q          # 24 tests, all external dependencies faked — no keys needed
-ruff check .       # lint
+python scripts/evaluate.py run --scenario orbit-incident --output artifacts/orbit.json
 ```
 
-CI (GitHub Actions) runs both on every push and pull request.
+This seeds a fresh scope, waits for graph indexing, alternates graph-off/on calls with caching disabled, and checks unseeded user and feature controls. It saves responses, provenance, timings, costs, fixture hash, and lexical fact scores. An all-pack run makes 60 generation requests, including seed and isolation-control calls. Provider retries can add requests.
 
-## Project layout
+For a narrated two-step demo:
 
+```bash
+python scripts/seed_demo.py --run-id walkthrough
+python scripts/demo_compare.py --run-id walkthrough
 ```
-app/
-  main.py        FastAPI app, endpoints, request-ID middleware
-  pipeline.py    the request flow (rate limit → embed → cache → graph → rank → LLM → background write-back)
-  providers.py   provider interface, Anthropic impl, routing + fallback, pricing
-  db.py          Postgres: call log, pgvector search, usage rollups
-  graph.py       Neo4j: write-back, 1–2 hop neighborhood expansion
-  embeddings.py  Voyage AI client
-  rate_limit.py  Redis fixed-window limiter
-  logs.py        structured JSON logging + request IDs
-  config.py      env-driven settings
-tests/           unit + pipeline tests, every external dependency faked
-scripts/
-  seed_demo.py     seed the graph with a fictional domain
-  demo_compare.py  side-by-side: same question, graph off vs on
-.github/workflows/ci.yml   lint + tests on every push
+
+The scorer is a transparent lexical quality proxy, not an expert correctness or safety score. Paid-provider graph-answer quality has not been measured in the bundled reports. [Evaluation guide](docs/evaluation.md).
+
+## Acceleration with evidence
+
+Real MiniLM inference on an Apple M5, measured on 2026-10-04:
+
+| Same-device comparison | Median throughput ratio, batch 32 versus batch 1 | Median batched throughput |
+|---|---:|---:|
+| CPU, 4 native threads | **4.998×** | 1,502.88 texts/s |
+| Apple MPS | **8.360×** | 2,207.08 texts/s |
+
+Three trials per device; 512 short synthetic texts per mode; concurrency 64; fixed model revision; memoization disabled. Loading and warmup are excluded. Ratios are medians of paired trial ratios. These measurements cover local embeddings, not hosted LLM generation or whole-gateway throughput. [Methodology and raw reports](docs/performance-results.md).
+
+The default Voyage backend coalesces requests into bounded batches. Local embeddings can run with Sentence Transformers on CPU, NVIDIA CUDA, or Apple MPS; the dependency is optional and the device is explicit.
+
+```bash
+pip install -r requirements-acceleration.txt
+# In .env, choose these together for a NEW database:
+# EMBEDDING_BACKEND=local
+# LOCAL_EMBEDDING_MODEL=sentence-transformers/all-MiniLM-L6-v2
+# LOCAL_EMBEDDING_DEVICE=cpu
+# LOCAL_EMBEDDING_CPU_THREADS=0
+# LOCAL_EMBEDDING_REVISION=<tested-immutable-model-commit>
+# EMBEDDING_DIM=384
+```
+
+Changing vector dimensions requires a reviewed migration and re-embedding. Changing models changes the embedding namespace; old vectors are not silently mixed. GPU inference is useful only when workload and batch size justify its overhead. The gateway still calls the LLM provider; local embeddings do not make generation offline. See [performance measurement](docs/performance.md) for repeatable measurement and capacity limits.
+
+## Development and deployment
+
+```bash
+ruff check .
+pytest -q
+python scripts/evaluate.py validate
+pip-audit -r requirements.lock
+```
+
+CI checks Python 3.12 and 3.13. Pull requests and main-branch updates also run integration checks against PostgreSQL, Neo4j, and Redis without paid model calls. The image and development installs use `requirements.lock`, an exact runtime package snapshot from the tested Python 3.12 image. `requirements.txt` remains the human-maintained version-bound source. Audit lock updates and pin the base image digest in the deployment release process.
+
+Read [operations](docs/operations.md) before deploying. It covers migration quarantine, backup/restore, outbox lag, retention cleanup, failure recovery, and SLO measurement. Streaming, end-user identity federation, per-record sharing policies, automated PII redaction, and a complete data-subject deletion workflow are outside the current implementation.
+
+```text
+app/          API, isolated retrieval, provider controls, batching, metrics, outbox
+migrations/   Versioned PostgreSQL schema and upgrade notes
+examples/     Synthetic use-case fixtures
+scripts/      Validation, comparisons, evaluation, embedding benchmark
+tests/        Offline contracts and optional backing-service integration
+docs/        Architecture, security, evaluation, performance, operations
 ```
