@@ -137,6 +137,7 @@ class _Circuit:
     failures: int = 0
     open_until: float = 0.0
     probe_inflight: bool = False
+    epoch: int = 0
 
 
 def _is_transient(exc: BaseException) -> bool:
@@ -172,34 +173,47 @@ class Router:
 
     async def _attempt(self, model: str, system: str | None, prompt: str, max_tokens: int):
         circuit = self._circuits.setdefault(model, _Circuit())
+        is_probe = False
         if circuit.open_until:
             if circuit.open_until > time.monotonic() or circuit.probe_inflight:
                 raise CircuitOpenError("Model circuit is cooling down; retry later")
             circuit.probe_inflight = True
+            is_probe = True
+        epoch = circuit.epoch
         try:
             result = await asyncio.wait_for(
                 self.provider.complete(model, system, prompt, max_tokens),
                 timeout=self._config.provider_timeout_seconds,
             )
         except BaseException as exc:
+            # Attempts admitted before a circuit trip do not own its new state.
+            # Their late results must not close it or release a newer probe.
+            if epoch != circuit.epoch:
+                raise
             if isinstance(exc, asyncio.CancelledError):
-                circuit.probe_inflight = False
+                if is_probe:
+                    circuit.probe_inflight = False
                 raise
             if _is_transient(exc):
                 circuit.failures += 1
-                if circuit.probe_inflight or circuit.failures >= self._config.provider_failure_threshold:
+                if is_probe or circuit.failures >= self._config.provider_failure_threshold:
+                    circuit.epoch += 1
                     circuit.open_until = time.monotonic() + self._config.provider_circuit_reset_seconds
-                circuit.probe_inflight = False
+                if is_probe:
+                    circuit.probe_inflight = False
             else:
                 # A valid rejection (e.g. 400/401) proves reachability, and is never retried.
                 circuit.failures = 0
                 circuit.open_until = 0.0
-                circuit.probe_inflight = False
+                if is_probe:
+                    circuit.probe_inflight = False
             raise
         else:
-            circuit.failures = 0
-            circuit.open_until = 0.0
-            circuit.probe_inflight = False
+            if epoch == circuit.epoch:
+                circuit.failures = 0
+                circuit.open_until = 0.0
+                if is_probe:
+                    circuit.probe_inflight = False
             return result
 
     async def complete(self, prompt: str, system: str | None, max_tokens: int) -> CompletionResult:

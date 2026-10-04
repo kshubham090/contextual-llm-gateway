@@ -53,6 +53,9 @@ class CapturePool:
         return args[0]
 
     async def fetchrow(self, sql, *args):
+        self.queries.append((sql, args))
+        if "md5(prompt)" in sql:
+            return self.rows[0] if self.rows else None
         row = self.calls.get(args[0])
         return dict(zip(("tenant_id", "user_id", "feature_tag"), row[1:4])) if row else None
 
@@ -182,3 +185,36 @@ async def test_claims_serialize_each_scope_and_use_skip_locked_and_lease_fencing
     assert args[0] == 200 and isinstance(args[2], uuid.UUID)
     await db.ack_graph_event(1, args[2])
     assert "lease_token = $2" in pool.queries[-1][0]
+
+
+async def test_exact_cache_lookup_binds_scope_policy_and_full_prompt_independently_of_vectors():
+    row = {
+        "id": uuid.uuid4(), "prompt": "exact prompt", "response": "cached response",
+        "feature_tag": "research", "created_epoch": 1000,
+    }
+    db = Database()
+    db.pool = pool = CapturePool(rows=[row])
+    result = await db.find_exact(
+        "exact prompt", tenant_id="tenant-a", user_id="user-a", feature_tag="research",
+        max_tokens=256, embedding_space="test:3", generation_config="policy-v2",
+    )
+    sql, args = pool.queries[0]
+    assert "md5(prompt) = md5($1) AND prompt = $1" in sql
+    assert "tenant_id = $2 AND user_id = $3 AND feature_tag = $4" in sql
+    assert "max_tokens = $5 AND embedding_space = $6 AND generation_config = $7" in sql
+    assert "expires_at > now() AND cache_expires_at > now()" in sql
+    assert "response IS NOT NULL AND NOT cache_hit" in sql and "embedding IS NOT NULL" in sql
+    assert "ORDER BY created_at DESC, id DESC" in sql and "LIMIT 1" in sql
+    assert "<=>" not in sql
+    assert args == ("exact prompt", "tenant-a", "user-a", "research", 256, "test:3", "policy-v2")
+    assert result == {**row, "id": str(row["id"]), "created_epoch": 1000.0,
+                      "similarity": 1.0, "cache_eligible": True}
+
+
+async def test_exact_cache_miss_returns_none():
+    db = Database()
+    db.pool = CapturePool()
+    assert await db.find_exact(
+        "missing", tenant_id="tenant-a", user_id="user-a", feature_tag="research",
+        max_tokens=256, embedding_space="test:3", generation_config="policy-v2",
+    ) is None

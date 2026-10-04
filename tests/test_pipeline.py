@@ -16,6 +16,13 @@ class FakeDB:
         self.similar = similar or []
         self.logged = []
         self.searches = []
+        self.exact_searches = []
+
+    async def find_exact(self, prompt, **kwargs):
+        self.exact_searches.append(kwargs)
+        return next(
+            (item for item in self.similar if item["prompt"] == prompt and item.get("cache_eligible")), None
+        )
 
     async def find_similar(self, embedding, **kwargs):
         self.searches.append(kwargs)
@@ -124,6 +131,7 @@ async def test_exact_cache_hit_commits_billing_and_graph_job_before_return():
     response = await p.handle_chat(req(), tenant_id="team-a")
     assert response.response == "cached answer" and response.meta.cache_hit
     assert p.router.seen_prompt is None
+    assert p.embedder.requests == [] and db.searches == []
     assert len(db.logged) == 1
     assert db.logged[0]["cost"] == 0
     assert db.logged[0]["graph_event"]["kind"] == "cache_hit"
@@ -170,7 +178,10 @@ async def test_store_false_keeps_content_out_of_every_persistent_and_embedding_c
     response = await p.handle_chat(req(store=False), tenant_id="team-a")
     row = p.db.logged[0]
     assert row["prompt"] is row["response"] is row["embedding"] is row["graph_event"] is None
-    assert p.embedder.requests[0][1]["cache"] is False
+    if cache_hit:
+        assert p.embedder.requests == []
+    else:
+        assert p.embedder.requests[0][1]["cache"] is False
     assert response.meta.memory_write == "disabled"
     assert row["cache_hit"] is cache_hit
 
@@ -253,3 +264,46 @@ def test_semantic_cache_policy_separates_simple_and_complex_routes():
     assert generation_config(req(prompt="Summarize rollbacks")) != generation_config(
         req(prompt="Compare rollback strategies", cache_mode="semantic")
     )
+
+
+async def test_exact_cache_hit_survives_embedding_backend_failure():
+    class UnavailableEmbedder(FakeEmbedder):
+        async def embed(self, *args, **kwargs):
+            raise ConnectionError("embedding service is unavailable")
+
+    p = pipeline(db=FakeDB([similar()]), embedder=UnavailableEmbedder())
+    response = await p.handle_chat(req(), tenant_id="team-a")
+    assert response.meta.cache_hit and response.response == "cached answer"
+    assert "embedding" not in response.meta.timings_ms
+    assert "exact_cache" in response.meta.timings_ms
+    assert p.db.logged[0]["graph_event"]["kind"] == "cache_hit"
+
+
+async def test_exact_cache_lookup_carries_all_eligibility_boundaries():
+    p = pipeline(db=FakeDB([similar()]))
+    request = req(max_tokens=73)
+    await p.handle_chat(request, tenant_id="team-a")
+    assert p.db.exact_searches == [
+        {
+            "tenant_id": "team-a",
+            "user_id": request.user_id,
+            "feature_tag": request.feature_tag,
+            "max_tokens": 73,
+            "embedding_space": p.embedder.space_id,
+            "generation_config": generation_config(request),
+        }
+    ]
+
+
+async def test_no_store_exact_cache_miss_does_not_embed_when_context_disabled():
+    p = pipeline()
+    response = await p.handle_chat(req(use_graph=False, store=False), tenant_id="team-a")
+    assert not response.meta.cache_hit and response.response == "llm answer"
+    assert len(p.db.exact_searches) == 1
+    assert p.db.searches == [] and p.embedder.requests == []
+
+
+async def test_cache_disabled_never_uses_exact_lookup():
+    p = pipeline(db=FakeDB([similar()]))
+    response = await p.handle_chat(req(use_cache=False), tenant_id="team-a")
+    assert not response.meta.cache_hit and p.db.exact_searches == []

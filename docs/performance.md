@@ -1,6 +1,6 @@
 # Performance and accelerated embeddings
 
-The implementation reduces avoidable overhead with bounded microbatches, pooled connections, reusable HTTP clients, limited concurrent work, and a scoped embedding cache. PostgreSQL's HNSW index performs approximate vector search; Neo4j expands a bounded neighborhood. The gateway still incurs generation latency and context-token cost. Acceleration must be measured on the target machine and workload.
+The implementation reduces avoidable overhead with bounded microbatches, pooled connections, reusable HTTP clients, limited concurrent work, and a scoped embedding cache. Exact completion hits use an indexed scoped query before embedding. PostgreSQL's HNSW index performs approximate vector search for other paths; Neo4j expands a bounded neighborhood. The gateway still incurs generation latency and context-token cost. Acceleration must be measured on the target machine and workload.
 
 The [measured-results report](performance-results.md) records three CPU and three Apple MPS trials with a pinned MiniLM revision, raw JSON evidence, and explicit workload limits.
 

@@ -181,6 +181,7 @@ async def test_services_migrates_legacy_schema_into_quarantine(monkeypatch):
     admin = await asyncpg.connect(settings.database_url)
     real_create_pool = asyncpg.create_pool
     db = Database()
+    migration_count = len(list((Path(__file__).resolve().parents[1] / "migrations").glob("[0-9]*.sql")))
     try:
         await admin.execute(f'CREATE SCHEMA "{schema}"')
         await admin.execute(f'SET search_path TO "{schema}", public')
@@ -207,10 +208,10 @@ async def test_services_migrates_legacy_schema_into_quarantine(monkeypatch):
             vector(), 10, 0.9, tenant_id="local", user_id="reader", feature_tag="research",
             max_tokens=128, embedding_space="integration-v1",
         ) == []
-        assert await db.pool.fetchval("SELECT count(*) FROM gateway_schema_migrations") == 3
+        assert await db.pool.fetchval("SELECT count(*) FROM gateway_schema_migrations") == migration_count
         await db.close()
         await db.connect()  # restart does not reapply migrations
-        assert await db.pool.fetchval("SELECT count(*) FROM gateway_schema_migrations") == 3
+        assert await db.pool.fetchval("SELECT count(*) FROM gateway_schema_migrations") == migration_count
     finally:
         await db.close()
         await admin.execute(f'DROP SCHEMA "{schema}" CASCADE')
@@ -277,3 +278,77 @@ async def test_services_outbox_projects_independent_scopes_in_parallel(services,
     assert await db.pool.fetchval("SELECT count(*) FROM graph_outbox WHERE tenant_id=$1", tenant) == 1
     assert await worker.run_once() == 1
     assert (await graph.stats(tenant_id=tenant))["calls"] == 3
+
+
+async def test_services_exact_cache_ignores_crowded_ann_and_enforces_all_eligibility_boundaries():
+    """Use an isolated three-dimensional schema so the crowded index stays small."""
+    schema = "exact_cache_test_" + uuid.uuid4().hex
+    conn = await asyncpg.connect(settings.database_url)
+    own_id = uuid.uuid4()
+    db = Database()
+    db.pool = conn
+    scope = {
+        "tenant_id": "own", "user_id": "reader", "feature_tag": "research",
+        "max_tokens": 128, "embedding_space": "space-v1", "generation_config": "policy-v1",
+    }
+    try:
+        await conn.execute(f'CREATE SCHEMA "{schema}"')
+        await conn.execute(f'SET search_path TO "{schema}", public')
+        for path in sorted((Path(__file__).resolve().parents[1] / "migrations").glob("[0-9]*.sql")):
+            await conn.execute(path.read_text().replace("{dim}", "3"))
+        for tenant, embedding in (("foreign", "[1,0,0]"), ("own", "[0,1,0]")):
+            await conn.execute("""
+                INSERT INTO calls(id, tenant_id, user_id, feature_tag, prompt, response, embedding,
+                                  max_tokens, embedding_space, generation_config,
+                                  expires_at, cache_expires_at)
+                SELECT gen_random_uuid(), $1, 'reader', 'research', 'unrelated prompt', 'answer', $2::vector,
+                       128, 'space-v1', 'policy-v1', now()+interval '1 day', now()+interval '1 hour'
+                FROM generate_series(1, 5000)
+            """, tenant, embedding)
+        await conn.execute("""
+            INSERT INTO calls(id, tenant_id, user_id, feature_tag, prompt, response, embedding,
+                              max_tokens, embedding_space, generation_config, created_at,
+                              expires_at, cache_expires_at)
+            VALUES($1, 'own', 'reader', 'research', 'repeated prompt', 'eligible answer', '[1,0,0]',
+                   128, 'space-v1', 'policy-v1', now()-interval '1 hour',
+                   now()+interval '1 day', now()+interval '1 hour')
+        """, own_id)
+        # Every ineligible copy is newer than the valid row. Omitting any boundary
+        # would let one of these rows win the descending creation-time lookup.
+        changes = (
+            "tenant_id='foreign'", "user_id='another-reader'", "feature_tag='another-feature'",
+            "max_tokens=256", "embedding_space='space-v2'", "generation_config='policy-v2'",
+            "expires_at=now()-interval '1 second'", "cache_expires_at=now()-interval '1 second'",
+            "cache_hit=true", "response=NULL", "embedding=NULL", "prompt='different full prompt'",
+        )
+        for change in changes:
+            variant_id = uuid.uuid4()
+            await conn.execute("""
+                INSERT INTO calls(id, tenant_id, user_id, feature_tag, prompt, response, embedding,
+                                  max_tokens, embedding_space, generation_config,
+                                  expires_at, cache_expires_at)
+                SELECT $1, tenant_id, user_id, feature_tag, prompt, 'ineligible answer', embedding,
+                       max_tokens, embedding_space, generation_config, expires_at, cache_expires_at
+                FROM calls WHERE id=$2
+            """, variant_id, own_id)
+            await conn.execute(f"UPDATE calls SET {change} WHERE id=$1", variant_id)
+        await conn.execute("ANALYZE calls")
+        # ANN recall is deliberately not asserted: that algorithm can return a
+        # different approximate subset on each index build. Exact reuse must work
+        # for every such build, regardless of its nearest-neighbor candidate set.
+        for iterative in ("off", "strict_order"):
+            await conn.execute(f"SET hnsw.iterative_scan='{iterative}'")
+            cached = await db.find_exact("repeated prompt", **scope)
+            assert cached["id"] == str(own_id)
+            assert cached["response"] == "eligible answer"
+            assert cached["cache_eligible"] and cached["similarity"] == 1.0
+        assert await db.find_exact("absent prompt", **scope) is None
+        await conn.execute("DELETE FROM calls WHERE id=$1", own_id)
+        assert await db.find_exact("repeated prompt", **scope) is None
+        indexes = await conn.fetchval("""
+            SELECT count(*) FROM pg_indexes WHERE schemaname=$1 AND indexname='calls_exact_cache_idx'
+        """, schema)
+        assert indexes == 1
+    finally:
+        await conn.execute(f'DROP SCHEMA "{schema}" CASCADE')
+        await conn.close()

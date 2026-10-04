@@ -26,6 +26,12 @@ new call uses a just-written call whose graph event is still queued. A repeatedl
 failing event blocks later events in its own scope and remains available for
 operator inspection; it is never silently discarded.
 
+`004` adds a scoped prompt-digest index for exact response reuse. Exact lookup
+checks the complete prompt as well as tenant/user/feature, embedding space,
+generation configuration, token budget, and both memory/cache TTLs. The digest is
+only an accelerator, not a security boundary. This lookup does not depend on HNSW
+recall; approximate retrieval retains its separate behavior described above.
+
 Expired rows are excluded immediately. `purge_expired_memory()` removes expired
 text, vectors, and queued graph payloads while preserving billing metadata;
 `MemoryGraph.purge_expired_memory()` removes expired graph nodes and orphan

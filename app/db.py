@@ -87,6 +87,47 @@ class Database:
         except Exception:
             return False
 
+    async def find_exact(
+        self,
+        prompt: str,
+        *,
+        tenant_id: str,
+        user_id: str,
+        feature_tag: str,
+        max_tokens: int,
+        embedding_space: str,
+        generation_config: str,
+    ) -> dict | None:
+        """Find an eligible exact completion independently of approximate vectors.
+
+        The indexed digest narrows candidates; full prompt equality still decides
+        the match. Scope, generation settings and both TTLs remain authoritative.
+        """
+        _scope(tenant_id, user_id, feature_tag)
+        row = await self.pool.fetchrow(
+            """
+            SELECT id, prompt, response, feature_tag,
+                   extract(epoch FROM created_at) AS created_epoch
+            FROM calls
+            WHERE tenant_id = $2 AND user_id = $3 AND feature_tag = $4
+              AND md5(prompt) = md5($1) AND prompt = $1
+              AND max_tokens = $5 AND embedding_space = $6 AND generation_config = $7
+              AND embedding IS NOT NULL AND prompt IS NOT NULL
+              AND response IS NOT NULL AND NOT cache_hit
+              AND expires_at > now() AND cache_expires_at > now()
+            ORDER BY created_at DESC, id DESC
+            LIMIT 1
+            """,
+            prompt, tenant_id, user_id, feature_tag, max_tokens, embedding_space, generation_config,
+        )
+        if row is None:
+            return None
+        return {
+            "id": str(row["id"]), "prompt": row["prompt"], "response": row["response"],
+            "feature_tag": row["feature_tag"], "created_epoch": float(row["created_epoch"]),
+            "similarity": 1.0, "cache_eligible": True,
+        }
+
     async def find_similar(
         self,
         embedding: list[float],

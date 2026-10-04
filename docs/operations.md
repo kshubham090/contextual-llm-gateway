@@ -94,7 +94,7 @@ Use rolling deployments only after checking schema compatibility and total per-r
 
 ## Release validation
 
-Run lint, unit tests, fixture validation, optional service integration, dependency auditing, and an image build. Execute a real provider smoke request and selected held-out scenarios in staging. Inspect both successful and failure-path reports. Test a backing-service interruption, graceful termination, restore, and sustained load before promoting the image. The image installs `requirements.lock`, the exact runtime package versions exported from the tested Linux Python 3.12 image. Pin the base image digest and retain approved package artifacts in the release system; package-version pins alone do not produce byte-for-byte identical images.
+Run lint, unit tests, fixture validation, real service integration, dependency auditing, and an image build. The real-service suite runs automatically for pull requests and main-branch updates. Execute a real provider smoke request and selected held-out scenarios in staging. Inspect both successful and failure-path reports. Test a backing-service interruption, graceful termination, restore, and sustained load before promoting the image. The image installs `requirements.lock`, the exact runtime package versions exported from the tested Linux Python 3.12 image. Pin the base image digest and retain approved package artifacts in the release system; package-version pins alone do not produce byte-for-byte identical images.
 
 ## Updating the runtime lock
 

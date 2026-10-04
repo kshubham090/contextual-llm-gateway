@@ -24,7 +24,7 @@ This repository provides a hardened, testable foundation with measured local emb
 | Concern | Behavior |
 |---|---|
 | Identity and memory | Bearer keys map to tenants. Cache reads, vector retrieval, and graph traversal are bounded by tenant, user, and feature. |
-| Cache correctness | Exact prompt caching is the default, with generation configuration, token budget, and TTL checks. Semantic reuse requires an explicit request flag. |
+| Cache correctness | An indexed exact-prompt lookup runs before embedding, with generation configuration, token budget, and TTL checks. Semantic reuse requires an explicit request flag. |
 | Durable memory | Billing and a graph event commit in one PostgreSQL transaction before success. A leased outbox worker projects events into Neo4j. |
 | Failure control | Request limits, admission bounds, provider concurrency limits, timeouts, model fallback, and circuit breaking. |
 | Efficient inference | Bounded embedding batches, reusable clients, a scoped TTL embedding cache, and optional local CPU/CUDA/MPS inference. |
@@ -36,10 +36,12 @@ This repository provides a hardened, testable foundation with measured local emb
 ```mermaid
 flowchart LR
     C[Trusted application] --> A[Authenticate tenant<br/>admit and rate limit]
-    A --> E[Embed in bounded batches]
+    A --> X{Scoped exact cache hit?}
+    X -->|yes| T[Commit accounting<br/>+ optional graph event]
+    X -->|no| E[Embed when needed<br/>in bounded batches]
     E --> P[(PostgreSQL + pgvector)]
-    P --> K{Eligible cache hit?}
-    K -->|yes| T[Commit accounting<br/>+ optional graph event]
+    P --> K{Opt-in semantic hit?}
+    K -->|yes| T
     K -->|no| G[(Scoped Neo4j neighborhood)]
     G --> B[Rank and budget<br/>untrusted context]
     B --> L[LLM router<br/>bounded fallback]
@@ -187,7 +189,7 @@ python scripts/evaluate.py validate
 pip-audit -r requirements.lock
 ```
 
-CI checks Python 3.12 and 3.13. Optional service integration checks exercise PostgreSQL, Neo4j, and Redis without paid model calls. The image and development installs use `requirements.lock`, an exact runtime package snapshot from the tested Python 3.12 image. `requirements.txt` remains the human-maintained version-bound source. Audit lock updates and pin the base image digest in the deployment release process.
+CI checks Python 3.12 and 3.13. Pull requests and main-branch updates also run integration checks against PostgreSQL, Neo4j, and Redis without paid model calls. The image and development installs use `requirements.lock`, an exact runtime package snapshot from the tested Python 3.12 image. `requirements.txt` remains the human-maintained version-bound source. Audit lock updates and pin the base image digest in the deployment release process.
 
 Read [operations](docs/operations.md) before deploying. It covers migration quarantine, backup/restore, outbox lag, retention cleanup, failure recovery, and SLO measurement. Streaming, end-user identity federation, per-record sharing policies, automated PII redaction, and a complete data-subject deletion workflow are outside the current implementation.
 

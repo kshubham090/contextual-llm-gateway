@@ -175,11 +175,22 @@ class Pipeline:
         space = self.embedder.space_id
         namespace = hashlib.sha256(json.dumps(list(scope.values())).encode()).hexdigest()
 
+        cached = None
+        if req.use_cache:
+            with measured(timings, "exact_cache"):
+                cached = await self.db.find_exact(
+                    req.prompt,
+                    **scope,
+                    max_tokens=max_tokens,
+                    embedding_space=space,
+                    generation_config=policy,
+                )
+
         embedding, similar = None, []
-        if req.use_cache or req.use_graph or req.store:
+        needs_neighbors = req.store or req.use_graph or (req.use_cache and req.cache_mode == "semantic")
+        if cached is None and needs_neighbors:
             with measured(timings, "embedding"):
                 embedding = await self.embedder.embed(req.prompt, namespace=namespace, cache=req.store)
-        if req.use_cache or req.use_graph or req.store:
             with measured(timings, "vector_search"):
                 similar = await self.db.find_similar(
                     embedding,
@@ -191,24 +202,18 @@ class Pipeline:
                     generation_config=policy,
                 )
 
-        cached = next(
-            (
-                candidate
-                for candidate in similar
-                if (
-                    req.use_cache
-                    and candidate.get("cache_eligible", False)
-                    and (
-                        candidate["prompt"] == req.prompt
-                        or (
-                            req.cache_mode == "semantic"
-                            and candidate["similarity"] >= settings.cache_hit_threshold
-                        )
+        if cached is None and req.use_cache and req.cache_mode == "semantic":
+            cached = next(
+                (
+                    candidate
+                    for candidate in similar
+                    if (
+                        candidate.get("cache_eligible", False)
+                        and candidate["similarity"] >= settings.cache_hit_threshold
                     )
-                )
-            ),
-            None,
-        )
+                ),
+                None,
+            )
         if cached:
             metrics.cache_requests.labels(outcome="hit").inc()
             event = (

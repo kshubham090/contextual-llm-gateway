@@ -68,6 +68,29 @@ class FakeProvider:
         self.closed = True
 
 
+class InterleavedProvider(FakeProvider):
+    """Control pre-trip attempts and recovery probes without timing races."""
+
+    def __init__(self, old_error=None):
+        super().__init__()
+        self.old_error = old_error
+        self.calls = []
+        self.entered = {prompt: asyncio.Event() for prompt in ("old", "probe")}
+        self.release = {prompt: asyncio.Event() for prompt in ("old", "probe")}
+
+    async def complete(self, model, system, prompt, max_tokens):
+        self.calls.append((model, prompt))
+        if model == "claude-haiku-4-5":
+            if prompt == "trip":
+                raise status_error(503)
+            if prompt in self.entered:
+                self.entered[prompt].set()
+                await self.release[prompt].wait()
+            if prompt == "old" and self.old_error is not None:
+                raise self.old_error
+        return "ok", 10, 5
+
+
 @pytest.fixture
 async def routers():
     created = []
@@ -173,6 +196,63 @@ async def test_half_open_circuit_allows_only_one_probe(routers):
     first_result, second_result = await asyncio.gather(probe, second)
     assert not first_result.fallback_used
     assert second_result.fallback_used
+
+
+@pytest.mark.parametrize("old_status", [None, 400, 503])
+async def test_pre_trip_result_cannot_change_newly_opened_circuit(routers, monkeypatch, old_status):
+    clock = [100.0]
+    monkeypatch.setattr("app.providers.time", SimpleNamespace(monotonic=lambda: clock[0]))
+    provider = InterleavedProvider(status_error(old_status) if old_status else None)
+    router = routers(provider, provider_max_concurrency=4, provider_failure_threshold=1)
+    old = asyncio.create_task(router.complete("old", None, 100))
+    await provider.entered["old"].wait()
+    assert (await router.complete("trip", None, 100)).fallback_used
+    opened_until = router._circuits["claude-haiku-4-5"].open_until
+
+    clock[0] += 1
+    provider.release["old"].set()
+    if old_status == 400:
+        with pytest.raises(anthropic.APIStatusError):
+            await old
+    else:
+        await old
+
+    assert router._circuits["claude-haiku-4-5"].open_until == opened_until
+    assert (await router.complete("after", None, 100)).fallback_used
+    assert ("claude-haiku-4-5", "after") not in provider.calls
+
+
+@pytest.mark.parametrize("old_outcome", ["cancel", "failure"])
+async def test_pre_trip_attempt_cannot_release_newer_recovery_probe(routers, monkeypatch, old_outcome):
+    clock = [100.0]
+    monkeypatch.setattr("app.providers.time", SimpleNamespace(monotonic=lambda: clock[0]))
+    provider = InterleavedProvider(status_error(503) if old_outcome == "failure" else None)
+    router = routers(provider, provider_max_concurrency=4, provider_failure_threshold=1)
+    old = asyncio.create_task(router.complete("old", None, 100))
+    await provider.entered["old"].wait()
+    assert (await router.complete("trip", None, 100)).fallback_used
+    circuit = router._circuits["claude-haiku-4-5"]
+    opened_until = circuit.open_until
+
+    clock[0] = opened_until + 1
+    probe = asyncio.create_task(router.complete("probe", None, 100))
+    await provider.entered["probe"].wait()
+    try:
+        if old_outcome == "cancel":
+            old.cancel()
+            with pytest.raises(asyncio.CancelledError):
+                await old
+        else:
+            provider.release["old"].set()
+            await old
+        assert circuit.probe_inflight
+        assert circuit.open_until == opened_until
+        assert (await router.complete("second", None, 100)).fallback_used
+        assert ("claude-haiku-4-5", "second") not in provider.calls
+    finally:
+        provider.release["probe"].set()
+        await probe
+    assert router.health()["open_circuits"] == []
 
 
 async def test_both_circuits_open_fail_without_provider_call(routers):
