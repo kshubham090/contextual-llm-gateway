@@ -1,0 +1,308 @@
+{
+  "schema_version": 1,
+  "generation": "synthetic fixed40ms context echo; not actual LLM inference",
+  "embedding_model": "sentence-transformers/all-MiniLM-L6-v2",
+  "embedding_revision": "1110a243fdf4706b3f48f1d95db1a4f5529b4d41",
+  "profiles": [
+    {
+      "device": "cpu",
+      "concurrency": 1,
+      "scheduled_duration_seconds": 30.0,
+      "wall_seconds": 30.0038755829446,
+      "attempts": 441,
+      "completed": 441,
+      "errors": 0,
+      "request_cap_reached": false,
+      "http_statuses": {
+        "200": 441
+      },
+      "error_types": {},
+      "successful_requests_per_second": 14.69810120965446,
+      "attempts_per_second": 14.69810120965446,
+      "success_latency_ms": {
+        "p50": 65.48749998910353,
+        "p95": 82.30191597249359,
+        "p99": 95.71249999571597
+      },
+      "all_attempt_latency_ms": {
+        "p50": 65.48749998910353,
+        "p95": 82.30191597249359,
+        "p99": 95.71249999571597
+      },
+      "reported_generation_cost_usd": 0,
+      "unpriced_successes": 441,
+      "tokens": 0,
+      "cache_hits": 0,
+      "mean_context_count": 4.0,
+      "models": {
+        "synthetic-demo/synthetic-demo": 441
+      }
+    },
+    {
+      "device": "cpu",
+      "concurrency": 8,
+      "scheduled_duration_seconds": 30.0,
+      "wall_seconds": 30.068745292024687,
+      "attempts": 3819,
+      "completed": 3819,
+      "errors": 0,
+      "request_cap_reached": false,
+      "http_statuses": {
+        "200": 3819
+      },
+      "error_types": {},
+      "successful_requests_per_second": 127.00895773702058,
+      "attempts_per_second": 127.00895773702058,
+      "success_latency_ms": {
+        "p50": 61.92187499254942,
+        "p95": 70.07950874394737,
+        "p99": 82.21188986906789
+      },
+      "all_attempt_latency_ms": {
+        "p50": 61.92187499254942,
+        "p95": 70.07950874394737,
+        "p99": 82.21188986906789
+      },
+      "reported_generation_cost_usd": 0,
+      "unpriced_successes": 3819,
+      "tokens": 0,
+      "cache_hits": 0,
+      "mean_context_count": 4.0,
+      "models": {
+        "synthetic-demo/synthetic-demo": 3819
+      }
+    },
+    {
+      "device": "cpu",
+      "concurrency": 32,
+      "scheduled_duration_seconds": 30.0,
+      "wall_seconds": 30.11810870899353,
+      "attempts": 10967,
+      "completed": 10967,
+      "errors": 0,
+      "request_cap_reached": false,
+      "http_statuses": {
+        "200": 10967
+      },
+      "error_types": {},
+      "successful_requests_per_second": 364.13309035985907,
+      "attempts_per_second": 364.13309035985907,
+      "success_latency_ms": {
+        "p50": 85.8247090363875,
+        "p95": 108.32743750652297,
+        "p99": 162.44179074885335
+      },
+      "all_attempt_latency_ms": {
+        "p50": 85.8247090363875,
+        "p95": 108.32743750652297,
+        "p99": 162.44179074885335
+      },
+      "reported_generation_cost_usd": 0,
+      "unpriced_successes": 10967,
+      "tokens": 0,
+      "cache_hits": 0,
+      "mean_context_count": 4.0,
+      "models": {
+        "synthetic-demo/synthetic-demo": 10967
+      }
+    },
+    {
+      "device": "cpu",
+      "concurrency": 64,
+      "scheduled_duration_seconds": 30.0,
+      "wall_seconds": 30.140981541015208,
+      "attempts": 9965,
+      "completed": 9965,
+      "errors": 0,
+      "request_cap_reached": false,
+      "http_statuses": {
+        "200": 9965
+      },
+      "error_types": {},
+      "successful_requests_per_second": 330.61298904416367,
+      "attempts_per_second": 330.61298904416367,
+      "success_latency_ms": {
+        "p50": 171.18437500903383,
+        "p95": 286.729125038255,
+        "p99": 836.1341852438637
+      },
+      "all_attempt_latency_ms": {
+        "p50": 171.18437500903383,
+        "p95": 286.729125038255,
+        "p99": 836.1341852438637
+      },
+      "reported_generation_cost_usd": 0,
+      "unpriced_successes": 9965,
+      "tokens": 0,
+      "cache_hits": 0,
+      "mean_context_count": 4.0,
+      "models": {
+        "synthetic-demo/synthetic-demo": 9965
+      }
+    },
+    {
+      "device": "mps",
+      "concurrency": 1,
+      "scheduled_duration_seconds": 30.0,
+      "wall_seconds": 30.054887207981665,
+      "attempts": 407,
+      "completed": 407,
+      "errors": 0,
+      "request_cap_reached": false,
+      "http_statuses": {
+        "200": 407
+      },
+      "error_types": {},
+      "successful_requests_per_second": 13.541890780808293,
+      "attempts_per_second": 13.541890780808293,
+      "success_latency_ms": {
+        "p50": 74.83545801369473,
+        "p95": 80.84420430823229,
+        "p99": 87.55913700559177
+      },
+      "all_attempt_latency_ms": {
+        "p50": 74.83545801369473,
+        "p95": 80.84420430823229,
+        "p99": 87.55913700559177
+      },
+      "reported_generation_cost_usd": 0,
+      "unpriced_successes": 407,
+      "tokens": 0,
+      "cache_hits": 0,
+      "mean_context_count": 4.0,
+      "models": {
+        "synthetic-demo/synthetic-demo": 407
+      }
+    },
+    {
+      "device": "mps",
+      "concurrency": 8,
+      "scheduled_duration_seconds": 30.0,
+      "wall_seconds": 30.074115874944255,
+      "attempts": 3460,
+      "completed": 3460,
+      "errors": 0,
+      "request_cap_reached": false,
+      "http_statuses": {
+        "200": 3460
+      },
+      "error_types": {},
+      "successful_requests_per_second": 115.0491011734992,
+      "attempts_per_second": 115.0491011734992,
+      "success_latency_ms": {
+        "p50": 64.743291499326,
+        "p95": 90.05526396795175,
+        "p99": 169.56301853759211
+      },
+      "all_attempt_latency_ms": {
+        "p50": 64.743291499326,
+        "p95": 90.05526396795175,
+        "p99": 169.56301853759211
+      },
+      "reported_generation_cost_usd": 0,
+      "unpriced_successes": 3460,
+      "tokens": 0,
+      "cache_hits": 0,
+      "mean_context_count": 4.0,
+      "models": {
+        "synthetic-demo/synthetic-demo": 3460
+      }
+    },
+    {
+      "device": "mps",
+      "concurrency": 32,
+      "scheduled_duration_seconds": 30.0,
+      "wall_seconds": 30.107566499966197,
+      "attempts": 5719,
+      "completed": 5719,
+      "errors": 0,
+      "request_cap_reached": false,
+      "http_statuses": {
+        "200": 5719
+      },
+      "error_types": {},
+      "successful_requests_per_second": 189.95225004340423,
+      "attempts_per_second": 189.95225004340423,
+      "success_latency_ms": {
+        "p50": 152.14008401380852,
+        "p95": 283.9246172981802,
+        "p99": 379.30920436861885
+      },
+      "all_attempt_latency_ms": {
+        "p50": 152.14008401380852,
+        "p95": 283.9246172981802,
+        "p99": 379.30920436861885
+      },
+      "reported_generation_cost_usd": 0,
+      "unpriced_successes": 5719,
+      "tokens": 0,
+      "cache_hits": 0,
+      "mean_context_count": 4.0,
+      "models": {
+        "synthetic-demo/synthetic-demo": 5719
+      }
+    },
+    {
+      "device": "mps",
+      "concurrency": 64,
+      "scheduled_duration_seconds": 30.0,
+      "wall_seconds": 30.18237187503837,
+      "attempts": 7052,
+      "completed": 7052,
+      "errors": 0,
+      "request_cap_reached": false,
+      "http_statuses": {
+        "200": 7052
+      },
+      "error_types": {},
+      "successful_requests_per_second": 233.64631610785344,
+      "attempts_per_second": 233.64631610785344,
+      "success_latency_ms": {
+        "p50": 222.92700002435595,
+        "p95": 505.4865789599715,
+        "p99": 1320.1523682236436
+      },
+      "all_attempt_latency_ms": {
+        "p50": 222.92700002435595,
+        "p95": 505.4865789599715,
+        "p99": 1320.1523682236436
+      },
+      "reported_generation_cost_usd": 0,
+      "unpriced_successes": 7052,
+      "tokens": 0,
+      "cache_hits": 0,
+      "mean_context_count": 4.0,
+      "models": {
+        "synthetic-demo/synthetic-demo": 7052
+      }
+    }
+  ],
+  "reports": [
+    {
+      "device": "cpu",
+      "path": "gateway-local-cpu.json.gz",
+      "uncompressed_sha256": "e3eb252bd19a97585c5ac65cf7df3671115e78587ca7b738a6ab1dd51acea06f",
+      "started_at": "2026-10-04T08:58:14.209932+00:00",
+      "finished_at": "2026-10-04T09:00:14.979236+00:00",
+      "load_generator": {
+        "platform": "macOS-26.6.2-arm64-arm-64bit-Mach-O",
+        "python": "3.14.7",
+        "cpu_count": 10,
+        "httpx": "0.28.1"
+      }
+    },
+    {
+      "device": "mps",
+      "path": "gateway-local-mps.json.gz",
+      "uncompressed_sha256": "1c2ee3f9928b74513c529ed051cdb499b4db1ae82b218bcd0f1eeee4498fe574",
+      "started_at": "2026-10-04T09:01:16.843691+00:00",
+      "finished_at": "2026-10-04T09:03:18.255972+00:00",
+      "load_generator": {
+        "platform": "macOS-26.6.2-arm64-arm-64bit-Mach-O",
+        "python": "3.14.7",
+        "cpu_count": 10,
+        "httpx": "0.28.1"
+      }
+    }
+  ]
+}

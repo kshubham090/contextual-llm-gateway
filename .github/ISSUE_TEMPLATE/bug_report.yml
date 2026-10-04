@@ -1,0 +1,33 @@
+name: Bug report
+description: Report a reproducible problem with synthetic, non-sensitive details.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: For suspected vulnerabilities, follow SECURITY.md. Do not include keys, customer prompts, private memory, or working exploits.
+  - type: input
+    id: revision
+    attributes:
+      label: Version or commit
+      description: Include SDK and server versions if relevant.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Minimal reproduction
+      description: Steps, synthetic inputs, and relevant configuration names without secret values.
+    validations:
+      required: true
+  - type: textarea
+    id: result
+    attributes:
+      label: Expected and observed behavior
+      description: Include safe request IDs and HTTP status if available. Do not paste full production logs.
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: OS, Python/Node version, storage versions, provider/backend names, and deployment shape.

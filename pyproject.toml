@@ -1,9 +1,10 @@
 [project]
 name = "contextual-llm-gateway"
-version = "0.2.0"
+version = "0.3.0"
 description = "A scoped, observable LLM gateway with graph memory and batched embeddings"
 requires-python = ">=3.12"
 readme = "README.md"
+license = "Apache-2.0"
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"

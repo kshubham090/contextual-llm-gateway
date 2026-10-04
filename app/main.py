@@ -15,15 +15,25 @@ from redis.exceptions import RedisError
 
 from . import metrics
 from .auth import Principal, authenticate, authenticate_metrics
+from .chat_api import router as chat_router
 from .config import settings
-from .db import Database
+from .console_api import router as console_router
+from .db import Database, MemoryConflict
 from .embeddings import EmbeddingClient, EmbeddingClosedError, EmbeddingError, EmbeddingOverloadedError
 from .graph import MemoryGraph
+from .inspector import router as inspector_router
 from .logs import log, new_request_id, request_id_var, setup_logging
+from .memory_api import router as memory_router
 from .middleware import RequestSizeLimitMiddleware
 from .outbox import GraphOutboxWorker
 from .pipeline import GatewayOverloaded, Pipeline, RateLimitExceeded
-from .providers import CircuitOpenError, ProviderClosedError, ProviderOverloadedError, Router
+from .providers import (
+    CircuitOpenError,
+    ProviderClosedError,
+    ProviderOverloadedError,
+    ProviderProtocolError,
+    Router,
+)
 from .rate_limit import RateLimiter
 from .schemas import ChatRequest, ChatResponse, UsageRow
 
@@ -36,6 +46,7 @@ async def lifespan(app: FastAPI):
     settings.validate_runtime()
     resources = []
     worker = None
+    pipeline = None
     app.state.ready = False
     try:
         db, graph, limiter = Database(), MemoryGraph(), RateLimiter()
@@ -45,6 +56,7 @@ async def lifespan(app: FastAPI):
         app.state.db, app.state.graph, app.state.limiter = db, graph, limiter
         app.state.embedder, app.state.router = embedder, router
         app.state.pipeline = Pipeline(db, graph, embedder, limiter, router)
+        pipeline = app.state.pipeline
         await db.connect()
         await graph.connect()
         await limiter.connect()
@@ -56,6 +68,8 @@ async def lifespan(app: FastAPI):
         yield
     finally:
         app.state.ready = False
+        if pipeline is not None:
+            await pipeline.close()
         if worker is not None:
             await worker.stop(timeout=min(5, settings.shutdown_timeout_seconds))
         if resources:
@@ -71,18 +85,22 @@ async def lifespan(app: FastAPI):
                 log(logger, "resource_close_timeout")
 
 
-def create_app() -> FastAPI:
+def create_app(*, lifespan_handler=lifespan) -> FastAPI:
     app = FastAPI(
         title="Contextual LLM Gateway",
-        version="0.2.0",
+        version="0.3.0",
         description="Scoped graph memory and measurable inference for trusted applications.",
-        lifespan=lifespan,
+        lifespan=lifespan_handler,
         docs_url="/docs" if settings.environment == "development" else None,
         redoc_url=None,
         openapi_url="/openapi.json" if settings.environment == "development" else None,
     )
     app.state.ready = False
     app.add_middleware(RequestSizeLimitMiddleware)
+    app.include_router(inspector_router)
+    app.include_router(chat_router)
+    app.include_router(memory_router)
+    app.include_router(console_router)
 
     @app.middleware("http")
     async def request_context(request: Request, call_next):
@@ -121,6 +139,8 @@ def create_app() -> FastAPI:
             raise HTTPException(503, "Gateway is not ready", headers={"Retry-After": "1"})
         try:
             return await request.app.state.pipeline.handle_chat(req, tenant_id=principal.tenant_id)
+        except MemoryConflict:
+            raise HTTPException(409, "Memory changed during this request; retry with the current memory")
         except RateLimitExceeded as exc:
             raise HTTPException(429, "Rate limit exceeded", headers={"Retry-After": str(exc.retry_after)})
         except (
@@ -134,10 +154,12 @@ def create_app() -> FastAPI:
             raise HTTPException(503, "Gateway capacity temporarily unavailable", headers={"Retry-After": "1"})
         except TimeoutError:
             raise HTTPException(504, "Request deadline exceeded")
-        except (EmbeddingError, httpx.HTTPError, anthropic.APIError):
+        except (EmbeddingError, ProviderProtocolError, httpx.HTTPError, anthropic.APIError):
             raise HTTPException(502, "Inference service unavailable")
         except (RedisError, asyncpg.PostgresError, ConnectionError):
             raise HTTPException(503, "Required storage unavailable", headers={"Retry-After": "1"})
+        except ValueError:
+            raise HTTPException(422, "Request is outside the supported text-generation contract")
 
     @app.get("/v1/usage", response_model=list[UsageRow])
     async def usage(

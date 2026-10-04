@@ -1,0 +1,1565 @@
+{
+  "schema_version": 1,
+  "started_at": "2026-10-04T09:09:22.017184+00:00",
+  "run_id": "df461f376b35",
+  "fixture_sha256": "c0f19d409886daa89495d8d0abb31ffa255466655a97bf3759e589460572f6e6",
+  "label": "Actual Qwen2.5-0.5B-Instruct 7ae557604adf67be50417f59c2c2f167def9a775 MPS float16 greedy; MiniLM1110a CPU4threads; synthetic support facts",
+  "seed": 42,
+  "trials": 3,
+  "max_tokens": 256,
+  "score_limitation": "Lexical expected-fact coverage and forbidden-phrase matches are quality proxies, not expert correctness or safety judgments. Negated mentions can be false positives; paraphrases can be false negatives. Review answers and retrieved provenance manually.",
+  "results": [
+    {
+      "trial": 0,
+      "scenario": "cedar-support",
+      "question": "cursor-recovery",
+      "prompt": "A Cedar customer has CDR-409 after moving workspaces. What should support do before resuming sync?",
+      "mode": "vector",
+      "order": [
+        "vector",
+        "none",
+        "graph"
+      ],
+      "http_ms": 1899.3762499885634,
+      "response": "Support should resume sync only after a cursor refresh and run a dry-run reconciliation.",
+      "meta": {
+        "call_id": "3fc85f91-78ad-49ae-8909-4175eb6e6c35",
+        "durable": true,
+        "retrieval_mode": "vector",
+        "memory_epoch": 4,
+        "usage_available": true,
+        "finish_reason": "stop",
+        "cache_hit": false,
+        "cache_mode": "exact",
+        "cached_call_id": null,
+        "context_used": [
+          "02591a22-fcf5-44c9-8e3e-7bba4ebf1e3b",
+          "34f7d4d5-3d3e-4892-b8e3-c97c49c1926a",
+          "4323cc47-afb6-48e1-bd47-dcf1aed385d4",
+          "6e081151-91f7-4fc1-bcea-ca5f25601a97"
+        ],
+        "model": "Qwen/Qwen2.5-0.5B-Instruct",
+        "provider": "openai_compatible",
+        "fallback_used": false,
+        "tokens_in": 701,
+        "tokens_out": 17,
+        "cost": null,
+        "cost_is_estimate": true,
+        "latency_ms": 1897,
+        "timings_ms": {
+          "rate_limit": 0.414,
+          "memory_snapshot": 0.675,
+          "embedding": 17.803,
+          "vector_search": 1.415,
+          "memory_validation": 1.078,
+          "ranking": 0.059,
+          "provider": 1872.223,
+          "persistence": 3.114
+        },
+        "degraded": [],
+        "memory_write": "disabled"
+      },
+      "score": {
+        "expected_fact_recall": 0.6666666666666666,
+        "expected_facts_matched": [
+          "cursor",
+          "dry-run"
+        ],
+        "expected_facts_missing": [
+          "pause"
+        ],
+        "forbidden_fact_matches": [],
+        "forbidden_fact_match_rate": 0.0
+      }
+    },
+    {
+      "trial": 0,
+      "scenario": "cedar-support",
+      "question": "cursor-recovery",
+      "prompt": "A Cedar customer has CDR-409 after moving workspaces. What should support do before resuming sync?",
+      "mode": "none",
+      "order": [
+        "vector",
+        "none",
+        "graph"
+      ],
+      "http_ms": 2824.3642500019632,
+      "response": "When a Cedar customer moves their workspaces and encounters an issue with the CDR-409 error code, it typically indicates that there is a problem with the synchronization process between the customer's local environment and the Cedar cloud service. Here\u2019s what support should do before resuming sync:\n\n1. **Review Logs**: Start by reviewing the logs from both the Cedar cloud service and the customer's local environment to identify any potential issues.\n\n2. **Check Environment Compatibility**: Ensure that the Cedar cloud service and the customer's environment are compatible. This includes checking for updates or patches that might be necessary for the specific version of the Cedar cloud service being used.\n\n3. **Update Dependencies**: If the Cedar cloud service uses certain dependencies, ensure they are up-to-date. Outdated dependencies can cause synchronization errors.\n\n4. **Contact Support**: Reach out to Cedar support directly if you cannot resolve the issue on your own. Provide them with detailed information about the error message, including the exact version of the Cedar cloud service and the state of the customer's environment.\n\n5. **Consult Documentation**: Refer to the Cedar documentation or community forums for troubleshooting tips specific to the Cedar cloud service. Sometimes, similar issues have been resolved in other Cedar instances or through different methods.\n\n6. **Test Sync",
+      "meta": {
+        "call_id": "10ae93c1-e8d5-4182-a2e0-9eaab7c6a399",
+        "durable": true,
+        "retrieval_mode": "none",
+        "memory_epoch": 4,
+        "usage_available": true,
+        "finish_reason": "length",
+        "cache_hit": false,
+        "cache_mode": "exact",
+        "cached_call_id": null,
+        "context_used": [],
+        "model": "Qwen/Qwen2.5-0.5B-Instruct",
+        "provider": "openai_compatible",
+        "fallback_used": false,
+        "tokens_in": 53,
+        "tokens_out": 256,
+        "cost": null,
+        "cost_is_estimate": true,
+        "latency_ms": 2822,
+        "timings_ms": {
+          "rate_limit": 0.405,
+          "memory_snapshot": 0.538,
+          "provider": 2818.459,
+          "persistence": 3.474
+        },
+        "degraded": [],
+        "memory_write": "disabled"
+      },
+      "score": {
+        "expected_fact_recall": 0.0,
+        "expected_facts_matched": [],
+        "expected_facts_missing": [
+          "pause",
+          "cursor",
+          "dry-run"
+        ],
+        "forbidden_fact_matches": [],
+        "forbidden_fact_match_rate": 0.0
+      }
+    },
+    {
+      "trial": 0,
+      "scenario": "cedar-support",
+      "question": "cursor-recovery",
+      "prompt": "A Cedar customer has CDR-409 after moving workspaces. What should support do before resuming sync?",
+      "mode": "graph",
+      "order": [
+        "vector",
+        "none",
+        "graph"
+      ],
+      "http_ms": 281.30741603672504,
+      "response": "Support should resume sync only after a cursor refresh and run a dry-run reconciliation.",
+      "meta": {
+        "call_id": "5891e7da-c7f9-4654-9696-acd461901c87",
+        "durable": true,
+        "retrieval_mode": "graph",
+        "memory_epoch": 4,
+        "usage_available": true,
+        "finish_reason": "stop",
+        "cache_hit": false,
+        "cache_mode": "exact",
+        "cached_call_id": null,
+        "context_used": [
+          "02591a22-fcf5-44c9-8e3e-7bba4ebf1e3b",
+          "34f7d4d5-3d3e-4892-b8e3-c97c49c1926a",
+          "4323cc47-afb6-48e1-bd47-dcf1aed385d4",
+          "6e081151-91f7-4fc1-bcea-ca5f25601a97"
+        ],
+        "model": "Qwen/Qwen2.5-0.5B-Instruct",
+        "provider": "openai_compatible",
+        "fallback_used": false,
+        "tokens_in": 701,
+        "tokens_out": 17,
+        "cost": null,
+        "cost_is_estimate": true,
+        "latency_ms": 279,
+        "timings_ms": {
+          "rate_limit": 0.448,
+          "memory_snapshot": 0.71,
+          "embedding": 10.803,
+          "vector_search": 1.666,
+          "graph": 4.133,
+          "memory_validation": 1.108,
+          "ranking": 0.031,
+          "provider": 254.165,
+          "persistence": 6.379
+        },
+        "degraded": [],
+        "memory_write": "disabled"
+      },
+      "score": {
+        "expected_fact_recall": 0.6666666666666666,
+        "expected_facts_matched": [
+          "cursor",
+          "dry-run"
+        ],
+        "expected_facts_missing": [
+          "pause"
+        ],
+        "forbidden_fact_matches": [],
+        "forbidden_fact_match_rate": 0.0
+      }
+    },
+    {
+      "trial": 0,
+      "scenario": "cedar-support",
+      "question": "escalation",
+      "prompt": "The Cedar migration cursor issue persists after the approved retries. When and with what evidence should support escalate?",
+      "mode": "graph",
+      "order": [
+        "graph",
+        "vector",
+        "none"
+      ],
+      "http_ms": 1865.259749989491,
+      "response": "To escalate the issue of the synthetic Cedar migration cursor persistence, you should follow these steps:\n\n1. **Restate the Facts**: Ensure that all facts are restated clearly and concisely without inventing new information.\n   \n   - **Synthetic Cedar Connector Support**: Error CDR-409 indicates a stale cursor after workspace migration. The approved first step is to pause sync and request a fresh cursor from connector settings.\n   \n2. **Identify the Issue**: Clearly state the problem and its impact on the workflow.\n\n3. **Provide Evidence**: Include any relevant documentation, logs, or screenshots that can help verify the issue.\n\n4. **Propose a Resolution**: Suggest a course of action based on the evidence provided.\n\nBy following these steps, you ensure that the issue is clearly communicated and addressed, which will help in resolving it effectively.",
+      "meta": {
+        "call_id": "71ddc9b0-275c-4451-99a8-ad135e16cf04",
+        "durable": true,
+        "retrieval_mode": "graph",
+        "memory_epoch": 4,
+        "usage_available": true,
+        "finish_reason": "stop",
+        "cache_hit": false,
+        "cache_mode": "exact",
+        "cached_call_id": null,
+        "context_used": [
+          "34f7d4d5-3d3e-4892-b8e3-c97c49c1926a",
+          "4323cc47-afb6-48e1-bd47-dcf1aed385d4",
+          "02591a22-fcf5-44c9-8e3e-7bba4ebf1e3b",
+          "6e081151-91f7-4fc1-bcea-ca5f25601a97"
+        ],
+        "model": "Qwen/Qwen2.5-0.5B-Instruct",
+        "provider": "openai_compatible",
+        "fallback_used": false,
+        "tokens_in": 697,
+        "tokens_out": 173,
+        "cost": null,
+        "cost_is_estimate": true,
+        "latency_ms": 1863,
+        "timings_ms": {
+          "rate_limit": 0.508,
+          "memory_snapshot": 0.794,
+          "embedding": 10.963,
+          "vector_search": 1.488,
+          "graph": 2.335,
+          "memory_validation": 0.886,
+          "ranking": 0.031,
+          "provider": 1843.09,
+          "persistence": 3.569
+        },
+        "degraded": [],
+        "memory_write": "disabled"
+      },
+      "score": {
+        "expected_fact_recall": 0.0,
+        "expected_facts_matched": [],
+        "expected_facts_missing": [
+          "attempts",
+          "team",
+          "evidence"
+        ],
+        "forbidden_fact_matches": [],
+        "forbidden_fact_match_rate": 0.0
+      }
+    },
+    {
+      "trial": 0,
+      "scenario": "cedar-support",
+      "question": "escalation",
+      "prompt": "The Cedar migration cursor issue persists after the approved retries. When and with what evidence should support escalate?",
+      "mode": "vector",
+      "order": [
+        "graph",
+        "vector",
+        "none"
+      ],
+      "http_ms": 1855.3937500109896,
+      "response": "To escalate the issue of the synthetic Cedar migration cursor persistence, you should follow these steps:\n\n1. **Restate the Facts**: Ensure that all facts are restated clearly and concisely without inventing new information.\n   \n   - **Synthetic Cedar Connector Support**: Error CDR-409 indicates a stale cursor after workspace migration. The approved first step is to pause sync and request a fresh cursor from connector settings.\n   \n2. **Identify the Issue**: Clearly state the problem and its impact on the workflow.\n\n3. **Provide Evidence**: Include any relevant documentation, logs, or screenshots that can help verify the issue.\n\n4. **Propose a Resolution**: Suggest a course of action based on the evidence provided.\n\nBy following these steps, you ensure that the issue is clearly communicated and addressed, which will help in resolving it effectively.",
+      "meta": {
+        "call_id": "b94b00b2-6ecb-43cf-8dfb-4225bd1b41f4",
+        "durable": true,
+        "retrieval_mode": "vector",
+        "memory_epoch": 4,
+        "usage_available": true,
+        "finish_reason": "stop",
+        "cache_hit": false,
+        "cache_mode": "exact",
+        "cached_call_id": null,
+        "context_used": [
+          "34f7d4d5-3d3e-4892-b8e3-c97c49c1926a",
+          "4323cc47-afb6-48e1-bd47-dcf1aed385d4",
+          "02591a22-fcf5-44c9-8e3e-7bba4ebf1e3b",
+          "6e081151-91f7-4fc1-bcea-ca5f25601a97"
+        ],
+        "model": "Qwen/Qwen2.5-0.5B-Instruct",
+        "provider": "openai_compatible",
+        "fallback_used": false,
+        "tokens_in": 697,
+        "tokens_out": 173,
+        "cost": null,
+        "cost_is_estimate": true,
+        "latency_ms": 1854,
+        "timings_ms": {
+          "rate_limit": 0.453,
+          "memory_snapshot": 0.716,
+          "embedding": 9.962,
+          "vector_search": 1.214,
+          "memory_validation": 0.768,
+          "ranking": 0.028,
+          "provider": 1836.89,
+          "persistence": 3.86
+        },
+        "degraded": [],
+        "memory_write": "disabled"
+      },
+      "score": {
+        "expected_fact_recall": 0.0,
+        "expected_facts_matched": [],
+        "expected_facts_missing": [
+          "attempts",
+          "team",
+          "evidence"
+        ],
+        "forbidden_fact_matches": [],
+        "forbidden_fact_match_rate": 0.0
+      }
+    },
+    {
+      "trial": 0,
+      "scenario": "cedar-support",
+      "question": "escalation",
+      "prompt": "The Cedar migration cursor issue persists after the approved retries. When and with what evidence should support escalate?",
+      "mode": "none",
+      "order": [
+        "graph",
+        "vector",
+        "none"
+      ],
+      "http_ms": 2542.769167048391,
+      "response": "When you encounter an issue where the Cedar migration cursor is still not moving after multiple approved retries, it's important to follow these steps to escalate the issue:\n\n1. **Review Logs**: Start by reviewing the logs for any relevant error messages or warnings that might provide more context about why the cursor is not moving.\n\n2. **Check Configuration**: Ensure that your Cedar instance configuration settings are correct. This includes the database connection details, the number of concurrent connections allowed, and any other parameters related to the migration process.\n\n3. **Database Performance**: Check if there are any performance issues affecting the migration process. This could include slow queries, large data sets, or insufficient resources (e.g., CPU, memory).\n\n4. **Migration Settings**: Verify that the migration settings are configured correctly. This includes specifying the source and destination databases, the target schema, and any specific options like `--max-connections` or `--max-time`.\n\n5. **Concurrency Control**: If you're using concurrency control mechanisms like `--concurrency`, ensure they are set appropriately. For example, if you have 10 concurrent connections, make sure they are being used efficiently.\n\n6. **Instance Health**: Check the health status of your Cedar instance. A healthy instance will allow the migration to proceed even",
+      "meta": {
+        "call_id": "97fdfa3c-2b23-4eb6-a6e7-ec7371896268",
+        "durable": true,
+        "retrieval_mode": "none",
+        "memory_epoch": 4,
+        "usage_available": true,
+        "finish_reason": "length",
+        "cache_hit": false,
+        "cache_mode": "exact",
+        "cached_call_id": null,
+        "context_used": [],
+        "model": "Qwen/Qwen2.5-0.5B-Instruct",
+        "provider": "openai_compatible",
+        "fallback_used": false,
+        "tokens_in": 49,
+        "tokens_out": 256,
+        "cost": null,
+        "cost_is_estimate": true,
+        "latency_ms": 2541,
+        "timings_ms": {
+          "rate_limit": 0.497,
+          "memory_snapshot": 0.7,
+          "provider": 2536.211,
+          "persistence": 3.834
+        },
+        "degraded": [],
+        "memory_write": "disabled"
+      },
+      "score": {
+        "expected_fact_recall": 0.0,
+        "expected_facts_matched": [],
+        "expected_facts_missing": [
+          "attempts",
+          "team",
+          "evidence"
+        ],
+        "forbidden_fact_matches": [],
+        "forbidden_fact_match_rate": 0.0
+      }
+    },
+    {
+      "trial": 1,
+      "scenario": "cedar-support",
+      "question": "cursor-recovery",
+      "prompt": "A Cedar customer has CDR-409 after moving workspaces. What should support do before resuming sync?",
+      "mode": "none",
+      "order": [
+        "none",
+        "graph",
+        "vector"
+      ],
+      "http_ms": 2536.289250012487,
+      "response": "When a Cedar customer moves their workspaces and encounters an issue with the CDR-409 error code, it typically indicates that there is a problem with the synchronization process between the customer's local environment and the Cedar cloud service. Here\u2019s what support should do before resuming sync:\n\n1. **Review Logs**: Start by reviewing the logs from both the Cedar cloud service and the customer's local environment to identify any potential issues.\n\n2. **Check Environment Compatibility**: Ensure that the Cedar cloud service and the customer's environment are compatible. This includes checking for updates or patches that might be necessary for the specific version of the Cedar cloud service being used.\n\n3. **Update Dependencies**: If the Cedar cloud service uses certain dependencies, ensure they are up-to-date. Outdated dependencies can cause synchronization errors.\n\n4. **Contact Support**: Reach out to Cedar support directly if you cannot resolve the issue on your own. Provide them with detailed information about the error message, including the exact version of the Cedar cloud service and the state of the customer's environment.\n\n5. **Consult Documentation**: Refer to the Cedar documentation or community forums for troubleshooting tips specific to the Cedar cloud service. Sometimes, similar issues have been resolved in other Cedar instances or through different methods.\n\n6. **Test Sync",
+      "meta": {
+        "call_id": "37dfc4f6-503e-4b27-8cc0-4741eb41af7e",
+        "durable": true,
+        "retrieval_mode": "none",
+        "memory_epoch": 4,
+        "usage_available": true,
+        "finish_reason": "length",
+        "cache_hit": false,
+        "cache_mode": "exact",
+        "cached_call_id": null,
+        "context_used": [],
+        "model": "Qwen/Qwen2.5-0.5B-Instruct",
+        "provider": "openai_compatible",
+        "fallback_used": false,
+        "tokens_in": 53,
+        "tokens_out": 256,
+        "cost": null,
+        "cost_is_estimate": true,
+        "latency_ms": 2534,
+        "timings_ms": {
+          "rate_limit": 0.422,
+          "memory_snapshot": 0.68,
+          "provider": 2530.225,
+          "persistence": 3.354
+        },
+        "degraded": [],
+        "memory_write": "disabled"
+      },
+      "score": {
+        "expected_fact_recall": 0.0,
+        "expected_facts_matched": [],
+        "expected_facts_missing": [
+          "pause",
+          "cursor",
+          "dry-run"
+        ],
+        "forbidden_fact_matches": [],
+        "forbidden_fact_match_rate": 0.0
+      }
+    },
+    {
+      "trial": 1,
+      "scenario": "cedar-support",
+      "question": "cursor-recovery",
+      "prompt": "A Cedar customer has CDR-409 after moving workspaces. What should support do before resuming sync?",
+      "mode": "graph",
+      "order": [
+        "none",
+        "graph",
+        "vector"
+      ],
+      "http_ms": 280.5654580006376,
+      "response": "Support should resume sync only after a cursor refresh and run a dry-run reconciliation.",
+      "meta": {
+        "call_id": "19d8f0c0-b0a5-40de-81af-f9653c9f4356",
+        "durable": true,
+        "retrieval_mode": "graph",
+        "memory_epoch": 4,
+        "usage_available": true,
+        "finish_reason": "stop",
+        "cache_hit": false,
+        "cache_mode": "exact",
+        "cached_call_id": null,
+        "context_used": [
+          "8cdaacef-be3a-4fa5-8328-ea99b2fd183d",
+          "e29a925d-d5ec-4b84-836e-654f8f3b40b9",
+          "93fc1a73-dc6e-4e5c-a4f0-6486fc4bd49a",
+          "dd855a96-f085-4018-aa5b-0e345831a09b"
+        ],
+        "model": "Qwen/Qwen2.5-0.5B-Instruct",
+        "provider": "openai_compatible",
+        "fallback_used": false,
+        "tokens_in": 702,
+        "tokens_out": 17,
+        "cost": null,
+        "cost_is_estimate": true,
+        "latency_ms": 279,
+        "timings_ms": {
+          "rate_limit": 0.467,
+          "memory_snapshot": 0.714,
+          "embedding": 10.622,
+          "vector_search": 1.445,
+          "graph": 2.878,
+          "memory_validation": 1.198,
+          "ranking": 0.035,
+          "provider": 258.158,
+          "persistence": 3.509
+        },
+        "degraded": [],
+        "memory_write": "disabled"
+      },
+      "score": {
+        "expected_fact_recall": 0.6666666666666666,
+        "expected_facts_matched": [
+          "cursor",
+          "dry-run"
+        ],
+        "expected_facts_missing": [
+          "pause"
+        ],
+        "forbidden_fact_matches": [],
+        "forbidden_fact_match_rate": 0.0
+      }
+    },
+    {
+      "trial": 1,
+      "scenario": "cedar-support",
+      "question": "cursor-recovery",
+      "prompt": "A Cedar customer has CDR-409 after moving workspaces. What should support do before resuming sync?",
+      "mode": "vector",
+      "order": [
+        "none",
+        "graph",
+        "vector"
+      ],
+      "http_ms": 275.0542919966392,
+      "response": "Support should resume sync only after a cursor refresh and run a dry-run reconciliation.",
+      "meta": {
+        "call_id": "a7683cde-3c78-441c-8ce9-3fc87a869729",
+        "durable": true,
+        "retrieval_mode": "vector",
+        "memory_epoch": 4,
+        "usage_available": true,
+        "finish_reason": "stop",
+        "cache_hit": false,
+        "cache_mode": "exact",
+        "cached_call_id": null,
+        "context_used": [
+          "8cdaacef-be3a-4fa5-8328-ea99b2fd183d",
+          "e29a925d-d5ec-4b84-836e-654f8f3b40b9",
+          "93fc1a73-dc6e-4e5c-a4f0-6486fc4bd49a",
+          "dd855a96-f085-4018-aa5b-0e345831a09b"
+        ],
+        "model": "Qwen/Qwen2.5-0.5B-Instruct",
+        "provider": "openai_compatible",
+        "fallback_used": false,
+        "tokens_in": 702,
+        "tokens_out": 17,
+        "cost": null,
+        "cost_is_estimate": true,
+        "latency_ms": 273,
+        "timings_ms": {
+          "rate_limit": 0.482,
+          "memory_snapshot": 0.689,
+          "embedding": 10.759,
+          "vector_search": 1.94,
+          "memory_validation": 1.127,
+          "ranking": 0.032,
+          "provider": 254.46,
+          "persistence": 4.085
+        },
+        "degraded": [],
+        "memory_write": "disabled"
+      },
+      "score": {
+        "expected_fact_recall": 0.6666666666666666,
+        "expected_facts_matched": [
+          "cursor",
+          "dry-run"
+        ],
+        "expected_facts_missing": [
+          "pause"
+        ],
+        "forbidden_fact_matches": [],
+        "forbidden_fact_match_rate": 0.0
+      }
+    },
+    {
+      "trial": 1,
+      "scenario": "cedar-support",
+      "question": "escalation",
+      "prompt": "The Cedar migration cursor issue persists after the approved retries. When and with what evidence should support escalate?",
+      "mode": "vector",
+      "order": [
+        "vector",
+        "none",
+        "graph"
+      ],
+      "http_ms": 1840.862124983687,
+      "response": "To escalate the issue of the synthetic Cedar migration cursor persistence, you should follow these steps:\n\n1. **Restate the Facts**: Ensure that the facts are restated clearly and concisely without inventing new policies or instructions.\n   \n   - **Synthetic Cedar Connector Support:** Error CDR-409 indicates a stale cursor after workspace migration. The approved first step is to pause sync and request a fresh cursor from connector settings.\n   \n2. **Identify the Issue**: Clearly define the problem based on the provided facts.\n\n3. **Propose an Action Plan**: Outline the specific actions needed to resolve the issue.\n\n4. **Provide Evidence**: Include any supporting documentation or context that can help verify the facts.\n\nBy following these steps, you ensure that the issue is clearly communicated and addressed, providing a clear path forward for resolution.",
+      "meta": {
+        "call_id": "f02aeb6f-0072-4cbc-88b5-1f90242cbd67",
+        "durable": true,
+        "retrieval_mode": "vector",
+        "memory_epoch": 4,
+        "usage_available": true,
+        "finish_reason": "stop",
+        "cache_hit": false,
+        "cache_mode": "exact",
+        "cached_call_id": null,
+        "context_used": [
+          "e29a925d-d5ec-4b84-836e-654f8f3b40b9",
+          "93fc1a73-dc6e-4e5c-a4f0-6486fc4bd49a",
+          "8cdaacef-be3a-4fa5-8328-ea99b2fd183d",
+          "dd855a96-f085-4018-aa5b-0e345831a09b"
+        ],
+        "model": "Qwen/Qwen2.5-0.5B-Instruct",
+        "provider": "openai_compatible",
+        "fallback_used": false,
+        "tokens_in": 698,
+        "tokens_out": 170,
+        "cost": null,
+        "cost_is_estimate": true,
+        "latency_ms": 1839,
+        "timings_ms": {
+          "rate_limit": 0.5,
+          "memory_snapshot": 0.696,
+          "embedding": 10.569,
+          "vector_search": 1.333,
+          "memory_validation": 0.877,
+          "ranking": 0.029,
+          "provider": 1822.548,
+          "persistence": 2.816
+        },
+        "degraded": [],
+        "memory_write": "disabled"
+      },
+      "score": {
+        "expected_fact_recall": 0.0,
+        "expected_facts_matched": [],
+        "expected_facts_missing": [
+          "attempts",
+          "team",
+          "evidence"
+        ],
+        "forbidden_fact_matches": [],
+        "forbidden_fact_match_rate": 0.0
+      }
+    },
+    {
+      "trial": 1,
+      "scenario": "cedar-support",
+      "question": "escalation",
+      "prompt": "The Cedar migration cursor issue persists after the approved retries. When and with what evidence should support escalate?",
+      "mode": "none",
+      "order": [
+        "vector",
+        "none",
+        "graph"
+      ],
+      "http_ms": 2522.964583011344,
+      "response": "When you encounter an issue where the Cedar migration cursor is still not moving after multiple approved retries, it's important to follow these steps to escalate the issue:\n\n1. **Review Logs**: Start by reviewing the logs for any relevant error messages or warnings that might provide more context about why the cursor is not moving.\n\n2. **Check Configuration**: Ensure that your Cedar instance configuration settings are correct. This includes the database connection details, the number of concurrent connections allowed, and any other parameters related to the migration process.\n\n3. **Database Performance**: Check if there are any performance issues affecting the migration process. This could include slow queries, large data sets, or insufficient resources (e.g., CPU, memory).\n\n4. **Migration Settings**: Verify that the migration settings are configured correctly. This includes specifying the source and destination databases, the target schema, and any specific options like `--max-connections` or `--max-time`.\n\n5. **Concurrency Control**: If you're using concurrency control mechanisms like `--concurrency`, ensure they are set appropriately. For example, if you have 10 concurrent connections, make sure they are being used efficiently.\n\n6. **Instance Health**: Check the health status of your Cedar instance. A healthy instance will allow the migration to proceed even",
+      "meta": {
+        "call_id": "e0b85961-7a2d-4c02-be90-699cc7561d33",
+        "durable": true,
+        "retrieval_mode": "none",
+        "memory_epoch": 4,
+        "usage_available": true,
+        "finish_reason": "length",
+        "cache_hit": false,
+        "cache_mode": "exact",
+        "cached_call_id": null,
+        "context_used": [],
+        "model": "Qwen/Qwen2.5-0.5B-Instruct",
+        "provider": "openai_compatible",
+        "fallback_used": false,
+        "tokens_in": 49,
+        "tokens_out": 256,
+        "cost": null,
+        "cost_is_estimate": true,
+        "latency_ms": 2521,
+        "timings_ms": {
+          "rate_limit": 0.369,
+          "memory_snapshot": 0.534,
+          "provider": 2517.633,
+          "persistence": 2.919
+        },
+        "degraded": [],
+        "memory_write": "disabled"
+      },
+      "score": {
+        "expected_fact_recall": 0.0,
+        "expected_facts_matched": [],
+        "expected_facts_missing": [
+          "attempts",
+          "team",
+          "evidence"
+        ],
+        "forbidden_fact_matches": [],
+        "forbidden_fact_match_rate": 0.0
+      }
+    },
+    {
+      "trial": 1,
+      "scenario": "cedar-support",
+      "question": "escalation",
+      "prompt": "The Cedar migration cursor issue persists after the approved retries. When and with what evidence should support escalate?",
+      "mode": "graph",
+      "order": [
+        "vector",
+        "none",
+        "graph"
+      ],
+      "http_ms": 1809.7000000416301,
+      "response": "To escalate the issue of the synthetic Cedar migration cursor persistence, you should follow these steps:\n\n1. **Restate the Facts**: Ensure that the facts are restated clearly and concisely without inventing new policies or instructions.\n   \n   - **Synthetic Cedar Connector Support:** Error CDR-409 indicates a stale cursor after workspace migration. The approved first step is to pause sync and request a fresh cursor from connector settings.\n   \n2. **Identify the Issue**: Clearly define the problem based on the provided facts.\n\n3. **Propose an Action Plan**: Outline the specific actions needed to resolve the issue.\n\n4. **Provide Evidence**: Include any supporting documentation or context that can help verify the facts.\n\nBy following these steps, you ensure that the issue is clearly communicated and addressed, providing a clear path forward for resolution.",
+      "meta": {
+        "call_id": "6ac64361-8766-4581-8dd8-5211d61256a2",
+        "durable": true,
+        "retrieval_mode": "graph",
+        "memory_epoch": 4,
+        "usage_available": true,
+        "finish_reason": "stop",
+        "cache_hit": false,
+        "cache_mode": "exact",
+        "cached_call_id": null,
+        "context_used": [
+          "e29a925d-d5ec-4b84-836e-654f8f3b40b9",
+          "93fc1a73-dc6e-4e5c-a4f0-6486fc4bd49a",
+          "8cdaacef-be3a-4fa5-8328-ea99b2fd183d",
+          "dd855a96-f085-4018-aa5b-0e345831a09b"
+        ],
+        "model": "Qwen/Qwen2.5-0.5B-Instruct",
+        "provider": "openai_compatible",
+        "fallback_used": false,
+        "tokens_in": 698,
+        "tokens_out": 170,
+        "cost": null,
+        "cost_is_estimate": true,
+        "latency_ms": 1808,
+        "timings_ms": {
+          "rate_limit": 0.691,
+          "memory_snapshot": 0.77,
+          "embedding": 10.573,
+          "vector_search": 1.188,
+          "graph": 2.2,
+          "memory_validation": 0.897,
+          "ranking": 0.026,
+          "provider": 1787.949,
+          "persistence": 3.742
+        },
+        "degraded": [],
+        "memory_write": "disabled"
+      },
+      "score": {
+        "expected_fact_recall": 0.0,
+        "expected_facts_matched": [],
+        "expected_facts_missing": [
+          "attempts",
+          "team",
+          "evidence"
+        ],
+        "forbidden_fact_matches": [],
+        "forbidden_fact_match_rate": 0.0
+      }
+    },
+    {
+      "trial": 2,
+      "scenario": "cedar-support",
+      "question": "cursor-recovery",
+      "prompt": "A Cedar customer has CDR-409 after moving workspaces. What should support do before resuming sync?",
+      "mode": "graph",
+      "order": [
+        "graph",
+        "vector",
+        "none"
+      ],
+      "http_ms": 655.3259579814039,
+      "response": "Support should resume sync only after a cursor refresh and run a dry-run reconciliation.",
+      "meta": {
+        "call_id": "10179c39-4f14-499e-8943-c13fe108ebcc",
+        "durable": true,
+        "retrieval_mode": "graph",
+        "memory_epoch": 4,
+        "usage_available": true,
+        "finish_reason": "stop",
+        "cache_hit": false,
+        "cache_mode": "exact",
+        "cached_call_id": null,
+        "context_used": [
+          "c84523fa-05e4-473b-9c7e-6158fbb802ba",
+          "89543162-72c3-4e72-9341-ce1fcffaabf4",
+          "de3c63f9-adf1-4c53-bdb8-e28a2c262b0a",
+          "9b4528f7-7aa7-4d97-be46-8a68942aab47"
+        ],
+        "model": "Qwen/Qwen2.5-0.5B-Instruct",
+        "provider": "openai_compatible",
+        "fallback_used": false,
+        "tokens_in": 700,
+        "tokens_out": 17,
+        "cost": null,
+        "cost_is_estimate": true,
+        "latency_ms": 653,
+        "timings_ms": {
+          "rate_limit": 0.884,
+          "memory_snapshot": 1.115,
+          "embedding": 17.463,
+          "vector_search": 1.844,
+          "graph": 2.705,
+          "memory_validation": 1.28,
+          "ranking": 0.053,
+          "provider": 623.867,
+          "persistence": 3.639
+        },
+        "degraded": [],
+        "memory_write": "disabled"
+      },
+      "score": {
+        "expected_fact_recall": 0.6666666666666666,
+        "expected_facts_matched": [
+          "cursor",
+          "dry-run"
+        ],
+        "expected_facts_missing": [
+          "pause"
+        ],
+        "forbidden_fact_matches": [],
+        "forbidden_fact_match_rate": 0.0
+      }
+    },
+    {
+      "trial": 2,
+      "scenario": "cedar-support",
+      "question": "cursor-recovery",
+      "prompt": "A Cedar customer has CDR-409 after moving workspaces. What should support do before resuming sync?",
+      "mode": "vector",
+      "order": [
+        "graph",
+        "vector",
+        "none"
+      ],
+      "http_ms": 278.0952919856645,
+      "response": "Support should resume sync only after a cursor refresh and run a dry-run reconciliation.",
+      "meta": {
+        "call_id": "9c962bda-e1d2-483e-9c50-1d4ff2c9bba6",
+        "durable": true,
+        "retrieval_mode": "vector",
+        "memory_epoch": 4,
+        "usage_available": true,
+        "finish_reason": "stop",
+        "cache_hit": false,
+        "cache_mode": "exact",
+        "cached_call_id": null,
+        "context_used": [
+          "c84523fa-05e4-473b-9c7e-6158fbb802ba",
+          "89543162-72c3-4e72-9341-ce1fcffaabf4",
+          "de3c63f9-adf1-4c53-bdb8-e28a2c262b0a",
+          "9b4528f7-7aa7-4d97-be46-8a68942aab47"
+        ],
+        "model": "Qwen/Qwen2.5-0.5B-Instruct",
+        "provider": "openai_compatible",
+        "fallback_used": false,
+        "tokens_in": 700,
+        "tokens_out": 17,
+        "cost": null,
+        "cost_is_estimate": true,
+        "latency_ms": 276,
+        "timings_ms": {
+          "rate_limit": 0.529,
+          "memory_snapshot": 0.777,
+          "embedding": 10.836,
+          "vector_search": 1.731,
+          "memory_validation": 1.001,
+          "ranking": 0.033,
+          "provider": 258.75,
+          "persistence": 3.035
+        },
+        "degraded": [],
+        "memory_write": "disabled"
+      },
+      "score": {
+        "expected_fact_recall": 0.6666666666666666,
+        "expected_facts_matched": [
+          "cursor",
+          "dry-run"
+        ],
+        "expected_facts_missing": [
+          "pause"
+        ],
+        "forbidden_fact_matches": [],
+        "forbidden_fact_match_rate": 0.0
+      }
+    },
+    {
+      "trial": 2,
+      "scenario": "cedar-support",
+      "question": "cursor-recovery",
+      "prompt": "A Cedar customer has CDR-409 after moving workspaces. What should support do before resuming sync?",
+      "mode": "none",
+      "order": [
+        "graph",
+        "vector",
+        "none"
+      ],
+      "http_ms": 2536.6928330040537,
+      "response": "When a Cedar customer moves their workspaces and encounters an issue with the CDR-409 error code, it typically indicates that there is a problem with the synchronization process between the customer's local environment and the Cedar cloud service. Here\u2019s what support should do before resuming sync:\n\n1. **Review Logs**: Start by reviewing the logs from both the Cedar cloud service and the customer's local environment to identify any potential issues.\n\n2. **Check Environment Compatibility**: Ensure that the Cedar cloud service and the customer's environment are compatible. This includes checking for updates or patches that might be necessary for the specific version of the Cedar cloud service being used.\n\n3. **Update Dependencies**: If the Cedar cloud service uses certain dependencies, ensure they are up-to-date. Outdated dependencies can cause synchronization errors.\n\n4. **Contact Support**: Reach out to Cedar support directly if you cannot resolve the issue on your own. Provide them with detailed information about the error message, including the exact version of the Cedar cloud service and the state of the customer's environment.\n\n5. **Consult Documentation**: Refer to the Cedar documentation or community forums for troubleshooting tips specific to the Cedar cloud service. Sometimes, similar issues have been resolved in other Cedar instances or through different methods.\n\n6. **Test Sync",
+      "meta": {
+        "call_id": "0ef1a867-719f-406e-9d33-8ed9e899e102",
+        "durable": true,
+        "retrieval_mode": "none",
+        "memory_epoch": 4,
+        "usage_available": true,
+        "finish_reason": "length",
+        "cache_hit": false,
+        "cache_mode": "exact",
+        "cached_call_id": null,
+        "context_used": [],
+        "model": "Qwen/Qwen2.5-0.5B-Instruct",
+        "provider": "openai_compatible",
+        "fallback_used": false,
+        "tokens_in": 53,
+        "tokens_out": 256,
+        "cost": null,
+        "cost_is_estimate": true,
+        "latency_ms": 2535,
+        "timings_ms": {
+          "rate_limit": 0.423,
+          "memory_snapshot": 0.663,
+          "provider": 2531.084,
+          "persistence": 3.156
+        },
+        "degraded": [],
+        "memory_write": "disabled"
+      },
+      "score": {
+        "expected_fact_recall": 0.0,
+        "expected_facts_matched": [],
+        "expected_facts_missing": [
+          "pause",
+          "cursor",
+          "dry-run"
+        ],
+        "forbidden_fact_matches": [],
+        "forbidden_fact_match_rate": 0.0
+      }
+    },
+    {
+      "trial": 2,
+      "scenario": "cedar-support",
+      "question": "escalation",
+      "prompt": "The Cedar migration cursor issue persists after the approved retries. When and with what evidence should support escalate?",
+      "mode": "none",
+      "order": [
+        "none",
+        "graph",
+        "vector"
+      ],
+      "http_ms": 2513.6768340016715,
+      "response": "When you encounter an issue where the Cedar migration cursor is still not moving after multiple approved retries, it's important to follow these steps to escalate the issue:\n\n1. **Review Logs**: Start by reviewing the logs for any relevant error messages or warnings that might provide more context about why the cursor is not moving.\n\n2. **Check Configuration**: Ensure that your Cedar instance configuration settings are correct. This includes the database connection details, the number of concurrent connections allowed, and any other parameters related to the migration process.\n\n3. **Database Performance**: Check if there are any performance issues affecting the migration process. This could include slow queries, large data sets, or insufficient resources (e.g., CPU, memory).\n\n4. **Migration Settings**: Verify that the migration settings are configured correctly. This includes specifying the source and destination databases, the target schema, and any specific options like `--max-connections` or `--max-time`.\n\n5. **Concurrency Control**: If you're using concurrency control mechanisms like `--concurrency`, ensure they are set appropriately. For example, if you have 10 concurrent connections, make sure they are being used efficiently.\n\n6. **Instance Health**: Check the health status of your Cedar instance. A healthy instance will allow the migration to proceed even",
+      "meta": {
+        "call_id": "4c8243f2-8733-41f1-8296-cfc1066b27cf",
+        "durable": true,
+        "retrieval_mode": "none",
+        "memory_epoch": 4,
+        "usage_available": true,
+        "finish_reason": "length",
+        "cache_hit": false,
+        "cache_mode": "exact",
+        "cached_call_id": null,
+        "context_used": [],
+        "model": "Qwen/Qwen2.5-0.5B-Instruct",
+        "provider": "openai_compatible",
+        "fallback_used": false,
+        "tokens_in": 49,
+        "tokens_out": 256,
+        "cost": null,
+        "cost_is_estimate": true,
+        "latency_ms": 2512,
+        "timings_ms": {
+          "rate_limit": 0.548,
+          "memory_snapshot": 1.005,
+          "provider": 2507.805,
+          "persistence": 2.905
+        },
+        "degraded": [],
+        "memory_write": "disabled"
+      },
+      "score": {
+        "expected_fact_recall": 0.0,
+        "expected_facts_matched": [],
+        "expected_facts_missing": [
+          "attempts",
+          "team",
+          "evidence"
+        ],
+        "forbidden_fact_matches": [],
+        "forbidden_fact_match_rate": 0.0
+      }
+    },
+    {
+      "trial": 2,
+      "scenario": "cedar-support",
+      "question": "escalation",
+      "prompt": "The Cedar migration cursor issue persists after the approved retries. When and with what evidence should support escalate?",
+      "mode": "graph",
+      "order": [
+        "none",
+        "graph",
+        "vector"
+      ],
+      "http_ms": 2203.5077089676633,
+      "response": "To escalate the issue of the synthetic Cedar migration cursor persistence, you should follow these steps:\n\n1. **Restate the Facts**: Ensure that all relevant details are accurately restated without inventing new policies or instructions.\n   \n   - **Synthetic Cedar Connector Support:** Error CDR-409 indicates a stale cursor after workspace migration. The approved first step is to pause sync and request a fresh cursor from connector settings.\n   \n2. **Identify the Issue**: Clearly define the problem based on the provided facts.\n\n3. **Propose an Action Plan**: Describe how to resolve the issue by escalating it to the integration team with a redacted trace ID and migration timestamp.\n\n4. **Provide Evidence**: Include any supporting documentation or logs that can help verify the issue.\n\nBy following these steps, you ensure that the issue is clearly identified, documented, and escalated appropriately.",
+      "meta": {
+        "call_id": "c2108173-2d36-4715-b53d-533c583f7798",
+        "durable": true,
+        "retrieval_mode": "graph",
+        "memory_epoch": 4,
+        "usage_available": true,
+        "finish_reason": "stop",
+        "cache_hit": false,
+        "cache_mode": "exact",
+        "cached_call_id": null,
+        "context_used": [
+          "89543162-72c3-4e72-9341-ce1fcffaabf4",
+          "de3c63f9-adf1-4c53-bdb8-e28a2c262b0a",
+          "c84523fa-05e4-473b-9c7e-6158fbb802ba",
+          "9b4528f7-7aa7-4d97-be46-8a68942aab47"
+        ],
+        "model": "Qwen/Qwen2.5-0.5B-Instruct",
+        "provider": "openai_compatible",
+        "fallback_used": false,
+        "tokens_in": 696,
+        "tokens_out": 176,
+        "cost": null,
+        "cost_is_estimate": true,
+        "latency_ms": 2202,
+        "timings_ms": {
+          "rate_limit": 0.48,
+          "memory_snapshot": 0.764,
+          "embedding": 10.681,
+          "vector_search": 1.496,
+          "graph": 1.602,
+          "memory_validation": 0.941,
+          "ranking": 0.025,
+          "provider": 2182.118,
+          "persistence": 3.887
+        },
+        "degraded": [],
+        "memory_write": "disabled"
+      },
+      "score": {
+        "expected_fact_recall": 0.6666666666666666,
+        "expected_facts_matched": [
+          "team",
+          "evidence"
+        ],
+        "expected_facts_missing": [
+          "attempts"
+        ],
+        "forbidden_fact_matches": [],
+        "forbidden_fact_match_rate": 0.0
+      }
+    },
+    {
+      "trial": 2,
+      "scenario": "cedar-support",
+      "question": "escalation",
+      "prompt": "The Cedar migration cursor issue persists after the approved retries. When and with what evidence should support escalate?",
+      "mode": "vector",
+      "order": [
+        "none",
+        "graph",
+        "vector"
+      ],
+      "http_ms": 1882.8019999782555,
+      "response": "To escalate the issue of the synthetic Cedar migration cursor persistence, you should follow these steps:\n\n1. **Restate the Facts**: Ensure that all relevant details are accurately restated without inventing new policies or instructions.\n   \n   - **Synthetic Cedar Connector Support:** Error CDR-409 indicates a stale cursor after workspace migration. The approved first step is to pause sync and request a fresh cursor from connector settings.\n   \n2. **Identify the Issue**: Clearly define the problem based on the provided facts.\n\n3. **Propose an Action Plan**: Describe how to resolve the issue by escalating it to the integration team with a redacted trace ID and migration timestamp.\n\n4. **Provide Evidence**: Include any supporting documentation or logs that can help verify the issue.\n\nBy following these steps, you ensure that the issue is clearly identified, documented, and escalated appropriately.",
+      "meta": {
+        "call_id": "b99db180-0972-4d55-9dc1-8daa68de1bcb",
+        "durable": true,
+        "retrieval_mode": "vector",
+        "memory_epoch": 4,
+        "usage_available": true,
+        "finish_reason": "stop",
+        "cache_hit": false,
+        "cache_mode": "exact",
+        "cached_call_id": null,
+        "context_used": [
+          "89543162-72c3-4e72-9341-ce1fcffaabf4",
+          "de3c63f9-adf1-4c53-bdb8-e28a2c262b0a",
+          "c84523fa-05e4-473b-9c7e-6158fbb802ba",
+          "9b4528f7-7aa7-4d97-be46-8a68942aab47"
+        ],
+        "model": "Qwen/Qwen2.5-0.5B-Instruct",
+        "provider": "openai_compatible",
+        "fallback_used": false,
+        "tokens_in": 696,
+        "tokens_out": 176,
+        "cost": null,
+        "cost_is_estimate": true,
+        "latency_ms": 1881,
+        "timings_ms": {
+          "rate_limit": 0.487,
+          "memory_snapshot": 0.687,
+          "embedding": 10.653,
+          "vector_search": 1.321,
+          "memory_validation": 0.835,
+          "ranking": 0.027,
+          "provider": 1863.515,
+          "persistence": 3.743
+        },
+        "degraded": [],
+        "memory_write": "disabled"
+      },
+      "score": {
+        "expected_fact_recall": 0.6666666666666666,
+        "expected_facts_matched": [
+          "team",
+          "evidence"
+        ],
+        "expected_facts_missing": [
+          "attempts"
+        ],
+        "forbidden_fact_matches": [],
+        "forbidden_fact_match_rate": 0.0
+      }
+    }
+  ],
+  "errors": [],
+  "isolation_controls": [
+    {
+      "trial": 0,
+      "scenario": "cedar-support",
+      "dimension": "user_id",
+      "passed": true,
+      "meta": {
+        "call_id": "e9901214-3b7c-468e-97c4-04a1aeceb486",
+        "durable": true,
+        "retrieval_mode": "graph",
+        "memory_epoch": 0,
+        "usage_available": true,
+        "finish_reason": "length",
+        "cache_hit": false,
+        "cache_mode": "exact",
+        "cached_call_id": null,
+        "context_used": [],
+        "model": "Qwen/Qwen2.5-0.5B-Instruct",
+        "provider": "openai_compatible",
+        "fallback_used": false,
+        "tokens_in": 53,
+        "tokens_out": 256,
+        "cost": null,
+        "cost_is_estimate": true,
+        "latency_ms": 2565,
+        "timings_ms": {
+          "rate_limit": 0.45,
+          "memory_snapshot": 0.729,
+          "embedding": 10.606,
+          "vector_search": 1.34,
+          "provider": 2549.588,
+          "persistence": 2.843
+        },
+        "degraded": [],
+        "memory_write": "disabled"
+      }
+    },
+    {
+      "trial": 0,
+      "scenario": "cedar-support",
+      "dimension": "feature_tag",
+      "passed": true,
+      "meta": {
+        "call_id": "106f5c20-0842-4593-bd84-237c38a1f09d",
+        "durable": true,
+        "retrieval_mode": "graph",
+        "memory_epoch": 0,
+        "usage_available": true,
+        "finish_reason": "length",
+        "cache_hit": false,
+        "cache_mode": "exact",
+        "cached_call_id": null,
+        "context_used": [],
+        "model": "Qwen/Qwen2.5-0.5B-Instruct",
+        "provider": "openai_compatible",
+        "fallback_used": false,
+        "tokens_in": 53,
+        "tokens_out": 256,
+        "cost": null,
+        "cost_is_estimate": true,
+        "latency_ms": 2537,
+        "timings_ms": {
+          "rate_limit": 0.358,
+          "memory_snapshot": 0.568,
+          "embedding": 10.461,
+          "vector_search": 1.044,
+          "provider": 2522.2,
+          "persistence": 3.24
+        },
+        "degraded": [],
+        "memory_write": "disabled"
+      }
+    },
+    {
+      "trial": 1,
+      "scenario": "cedar-support",
+      "dimension": "user_id",
+      "passed": true,
+      "meta": {
+        "call_id": "424530ba-c198-40ef-8af7-26da007ef085",
+        "durable": true,
+        "retrieval_mode": "graph",
+        "memory_epoch": 0,
+        "usage_available": true,
+        "finish_reason": "length",
+        "cache_hit": false,
+        "cache_mode": "exact",
+        "cached_call_id": null,
+        "context_used": [],
+        "model": "Qwen/Qwen2.5-0.5B-Instruct",
+        "provider": "openai_compatible",
+        "fallback_used": false,
+        "tokens_in": 53,
+        "tokens_out": 256,
+        "cost": null,
+        "cost_is_estimate": true,
+        "latency_ms": 2531,
+        "timings_ms": {
+          "rate_limit": 0.5,
+          "memory_snapshot": 0.65,
+          "embedding": 10.624,
+          "vector_search": 1.288,
+          "provider": 2514.46,
+          "persistence": 3.444
+        },
+        "degraded": [],
+        "memory_write": "disabled"
+      }
+    },
+    {
+      "trial": 1,
+      "scenario": "cedar-support",
+      "dimension": "feature_tag",
+      "passed": true,
+      "meta": {
+        "call_id": "37089eca-009f-4269-ae32-ea257abe5631",
+        "durable": true,
+        "retrieval_mode": "graph",
+        "memory_epoch": 0,
+        "usage_available": true,
+        "finish_reason": "length",
+        "cache_hit": false,
+        "cache_mode": "exact",
+        "cached_call_id": null,
+        "context_used": [],
+        "model": "Qwen/Qwen2.5-0.5B-Instruct",
+        "provider": "openai_compatible",
+        "fallback_used": false,
+        "tokens_in": 53,
+        "tokens_out": 256,
+        "cost": null,
+        "cost_is_estimate": true,
+        "latency_ms": 2526,
+        "timings_ms": {
+          "rate_limit": 0.506,
+          "memory_snapshot": 1.033,
+          "embedding": 10.7,
+          "vector_search": 1.558,
+          "provider": 2507.001,
+          "persistence": 5.507
+        },
+        "degraded": [],
+        "memory_write": "disabled"
+      }
+    },
+    {
+      "trial": 2,
+      "scenario": "cedar-support",
+      "dimension": "user_id",
+      "passed": true,
+      "meta": {
+        "call_id": "260fa809-487a-4b1d-809f-2856ea9845d2",
+        "durable": true,
+        "retrieval_mode": "graph",
+        "memory_epoch": 0,
+        "usage_available": true,
+        "finish_reason": "length",
+        "cache_hit": false,
+        "cache_mode": "exact",
+        "cached_call_id": null,
+        "context_used": [],
+        "model": "Qwen/Qwen2.5-0.5B-Instruct",
+        "provider": "openai_compatible",
+        "fallback_used": false,
+        "tokens_in": 53,
+        "tokens_out": 256,
+        "cost": null,
+        "cost_is_estimate": true,
+        "latency_ms": 2529,
+        "timings_ms": {
+          "rate_limit": 0.57,
+          "memory_snapshot": 0.865,
+          "embedding": 10.48,
+          "vector_search": 1.165,
+          "provider": 2513.235,
+          "persistence": 3.331
+        },
+        "degraded": [],
+        "memory_write": "disabled"
+      }
+    },
+    {
+      "trial": 2,
+      "scenario": "cedar-support",
+      "dimension": "feature_tag",
+      "passed": true,
+      "meta": {
+        "call_id": "add3afd6-f132-41ef-b070-96b3fb20f239",
+        "durable": true,
+        "retrieval_mode": "graph",
+        "memory_epoch": 0,
+        "usage_available": true,
+        "finish_reason": "length",
+        "cache_hit": false,
+        "cache_mode": "exact",
+        "cached_call_id": null,
+        "context_used": [],
+        "model": "Qwen/Qwen2.5-0.5B-Instruct",
+        "provider": "openai_compatible",
+        "fallback_used": false,
+        "tokens_in": 53,
+        "tokens_out": 256,
+        "cost": null,
+        "cost_is_estimate": true,
+        "latency_ms": 2526,
+        "timings_ms": {
+          "rate_limit": 0.488,
+          "memory_snapshot": 0.729,
+          "embedding": 10.704,
+          "vector_search": 1.586,
+          "provider": 2508.102,
+          "persistence": 5.208
+        },
+        "degraded": [],
+        "memory_write": "disabled"
+      }
+    }
+  ],
+  "seeds": [
+    {
+      "trial": 0,
+      "scenario": "cedar-support",
+      "seed_id": "memory-1",
+      "memory_id": "34f7d4d5-3d3e-4892-b8e3-c97c49c1926a"
+    },
+    {
+      "trial": 0,
+      "scenario": "cedar-support",
+      "seed_id": "memory-2",
+      "memory_id": "02591a22-fcf5-44c9-8e3e-7bba4ebf1e3b"
+    },
+    {
+      "trial": 0,
+      "scenario": "cedar-support",
+      "seed_id": "memory-3",
+      "memory_id": "4323cc47-afb6-48e1-bd47-dcf1aed385d4"
+    },
+    {
+      "trial": 0,
+      "scenario": "cedar-support",
+      "seed_id": "memory-4",
+      "memory_id": "6e081151-91f7-4fc1-bcea-ca5f25601a97"
+    },
+    {
+      "trial": 1,
+      "scenario": "cedar-support",
+      "seed_id": "memory-1",
+      "memory_id": "e29a925d-d5ec-4b84-836e-654f8f3b40b9"
+    },
+    {
+      "trial": 1,
+      "scenario": "cedar-support",
+      "seed_id": "memory-2",
+      "memory_id": "8cdaacef-be3a-4fa5-8328-ea99b2fd183d"
+    },
+    {
+      "trial": 1,
+      "scenario": "cedar-support",
+      "seed_id": "memory-3",
+      "memory_id": "93fc1a73-dc6e-4e5c-a4f0-6486fc4bd49a"
+    },
+    {
+      "trial": 1,
+      "scenario": "cedar-support",
+      "seed_id": "memory-4",
+      "memory_id": "dd855a96-f085-4018-aa5b-0e345831a09b"
+    },
+    {
+      "trial": 2,
+      "scenario": "cedar-support",
+      "seed_id": "memory-1",
+      "memory_id": "89543162-72c3-4e72-9341-ce1fcffaabf4"
+    },
+    {
+      "trial": 2,
+      "scenario": "cedar-support",
+      "seed_id": "memory-2",
+      "memory_id": "c84523fa-05e4-473b-9c7e-6158fbb802ba"
+    },
+    {
+      "trial": 2,
+      "scenario": "cedar-support",
+      "seed_id": "memory-3",
+      "memory_id": "de3c63f9-adf1-4c53-bdb8-e28a2c262b0a"
+    },
+    {
+      "trial": 2,
+      "scenario": "cedar-support",
+      "seed_id": "memory-4",
+      "memory_id": "9b4528f7-7aa7-4d97-be46-8a68942aab47"
+    }
+  ],
+  "scopes": [
+    {
+      "user_id": "eval-cedar-support-df461f376b35-0",
+      "feature_tag": "cedar-support"
+    },
+    {
+      "user_id": "eval-cedar-support-df461f376b35-1",
+      "feature_tag": "cedar-support"
+    },
+    {
+      "user_id": "eval-cedar-support-df461f376b35-2",
+      "feature_tag": "cedar-support"
+    }
+  ],
+  "cost_scope": "Scored-answer generation only; isolation-call costs remain in control metadata. Embeddings, failed calls and infrastructure excluded.",
+  "summary": {
+    "none": {
+      "answers": 6,
+      "mean_fact_coverage": 0.0,
+      "forbidden_phrase_matches": 0,
+      "p50_http_ms": 2536.4910415082704,
+      "p95_http_ms": 2753.96547926357,
+      "mean_context_count": 0,
+      "generation_cost_usd": 0,
+      "unpriced_answers": 6,
+      "tokens": 1842
+    },
+    "vector": {
+      "answers": 6,
+      "mean_fact_coverage": 0.4444444444444444,
+      "forbidden_phrase_matches": 0,
+      "p50_http_ms": 1848.1279374973383,
+      "p95_http_ms": 1895.2326874859864,
+      "mean_context_count": 4,
+      "generation_cost_usd": 0,
+      "unpriced_answers": 6,
+      "tokens": 4764
+    },
+    "graph": {
+      "answers": 6,
+      "mean_fact_coverage": 0.4444444444444444,
+      "forbidden_phrase_matches": 0,
+      "p50_http_ms": 1232.512979011517,
+      "p95_http_ms": 2118.9457192231202,
+      "mean_context_count": 4,
+      "generation_cost_usd": 0,
+      "unpriced_answers": 6,
+      "tokens": 4764
+    },
+    "complete_triplets": 6,
+    "model_matched_triplets": 6,
+    "confounded_or_missing_model_triplets": 0,
+    "paired_graph_minus_vector_coverage": 0.0
+  },
+  "finished_at": "2026-10-04T09:10:10.267786+00:00",
+  "review_key": [
+    {
+      "review_id": "R0000",
+      "trial": 2,
+      "scenario": "cedar-support",
+      "question": "cursor-recovery",
+      "mode": "vector"
+    },
+    {
+      "review_id": "R0001",
+      "trial": 2,
+      "scenario": "cedar-support",
+      "question": "cursor-recovery",
+      "mode": "graph"
+    },
+    {
+      "review_id": "R0002",
+      "trial": 0,
+      "scenario": "cedar-support",
+      "question": "escalation",
+      "mode": "vector"
+    },
+    {
+      "review_id": "R0003",
+      "trial": 1,
+      "scenario": "cedar-support",
+      "question": "escalation",
+      "mode": "vector"
+    },
+    {
+      "review_id": "R0004",
+      "trial": 0,
+      "scenario": "cedar-support",
+      "question": "escalation",
+      "mode": "none"
+    },
+    {
+      "review_id": "R0005",
+      "trial": 1,
+      "scenario": "cedar-support",
+      "question": "cursor-recovery",
+      "mode": "graph"
+    },
+    {
+      "review_id": "R0006",
+      "trial": 2,
+      "scenario": "cedar-support",
+      "question": "escalation",
+      "mode": "graph"
+    },
+    {
+      "review_id": "R0007",
+      "trial": 1,
+      "scenario": "cedar-support",
+      "question": "cursor-recovery",
+      "mode": "none"
+    },
+    {
+      "review_id": "R0008",
+      "trial": 1,
+      "scenario": "cedar-support",
+      "question": "escalation",
+      "mode": "none"
+    },
+    {
+      "review_id": "R0009",
+      "trial": 2,
+      "scenario": "cedar-support",
+      "question": "escalation",
+      "mode": "none"
+    },
+    {
+      "review_id": "R0010",
+      "trial": 0,
+      "scenario": "cedar-support",
+      "question": "cursor-recovery",
+      "mode": "none"
+    },
+    {
+      "review_id": "R0011",
+      "trial": 1,
+      "scenario": "cedar-support",
+      "question": "escalation",
+      "mode": "graph"
+    },
+    {
+      "review_id": "R0012",
+      "trial": 0,
+      "scenario": "cedar-support",
+      "question": "cursor-recovery",
+      "mode": "graph"
+    },
+    {
+      "review_id": "R0013",
+      "trial": 2,
+      "scenario": "cedar-support",
+      "question": "cursor-recovery",
+      "mode": "none"
+    },
+    {
+      "review_id": "R0014",
+      "trial": 2,
+      "scenario": "cedar-support",
+      "question": "escalation",
+      "mode": "vector"
+    },
+    {
+      "review_id": "R0015",
+      "trial": 1,
+      "scenario": "cedar-support",
+      "question": "cursor-recovery",
+      "mode": "vector"
+    },
+    {
+      "review_id": "R0016",
+      "trial": 0,
+      "scenario": "cedar-support",
+      "question": "cursor-recovery",
+      "mode": "vector"
+    },
+    {
+      "review_id": "R0017",
+      "trial": 0,
+      "scenario": "cedar-support",
+      "question": "escalation",
+      "mode": "graph"
+    }
+  ]
+}

@@ -1,6 +1,7 @@
 """Validated operating limits. Credentials are checked at service startup."""
 
 from typing import Literal
+from urllib.parse import urlsplit
 
 from pydantic import Field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -15,6 +16,13 @@ class Settings(BaseSettings):
     metrics_bearer_token: str = Field(default="", repr=False)
     anthropic_api_key: str = Field(default="", repr=False)
     voyage_api_key: str = Field(default="", repr=False)
+    generation_backend: Literal["anthropic", "openai_compatible"] = "anthropic"
+    anthropic_base_url: str = "https://api.anthropic.com"
+    openai_api_key: str = Field(default="", repr=False)
+    openai_base_url: str = "https://api.openai.com/v1"
+    openai_max_tokens_field: Literal["max_tokens", "max_completion_tokens"] = "max_tokens"
+    openai_stream_usage: bool = True
+    provider_max_response_bytes: int = Field(default=8388608, ge=1024, le=67108864)
 
     database_url: str = Field(default="postgresql://gateway:gateway@localhost:5433/gateway", repr=False)
     neo4j_uri: str = "bolt://localhost:7687"
@@ -84,6 +92,11 @@ class Settings(BaseSettings):
 
     @model_validator(mode="after")
     def validate_limits(self):
+        for value in (self.anthropic_base_url, self.openai_base_url):
+            parsed = urlsplit(value)
+            if (parsed.scheme not in {"http", "https"} or not parsed.hostname
+                    or parsed.username or parsed.password or parsed.query or parsed.fragment):
+                raise ValueError("Provider base URLs must use HTTP(S) without credentials, query or fragment")
         if self.environment == "production" and not self.auth_enabled:
             raise ValueError("Authentication cannot be disabled in production")
         if self.database_pool_min_size > self.database_pool_max_size:
@@ -109,7 +122,7 @@ class Settings(BaseSettings):
                 raise ValueError("Gateway tokens must contain at least 32 characters and no outer whitespace")
             if not tenant or len(tenant) > 128 or tenant.startswith("__") or tenant.strip() != tenant:
                 raise ValueError("Tenant IDs must be nonempty, <=128 characters, and not reserved")
-        if not self.anthropic_api_key:
+        if self.generation_backend == "anthropic" and not self.anthropic_api_key:
             raise ValueError("ANTHROPIC_API_KEY is required")
         if self.embedding_backend == "voyage" and not self.voyage_api_key:
             raise ValueError("VOYAGE_API_KEY is required for the voyage backend")

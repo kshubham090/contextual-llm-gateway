@@ -111,3 +111,14 @@ docker run --rm -v "$PWD:/src:ro" python:3.12-slim sh -c \
 Review the package changes and preserve the `uvloop` platform marker excluding Windows and non-CPython interpreters. Update the lock's date, Python version, and source platform. Replace the lock only after review, then run the dependency audit, unit tests, backing-service integration tests, and a rebuilt image smoke test. Remove the candidate after incorporating it. Record the new image digest with the release.
 
 For an already tested image, `docker run --rm --entrypoint python <tested-image> -m pip freeze` exports its installed package snapshot. This is how the initial lock was produced. The lock does not contain hashes or GPU wheels and should not be described as a universal cross-platform artifact lock.
+
+
+## Upgrade to 0.3.0
+
+Back up PostgreSQL and Neo4j before applying migration `005_memory_lifecycle.sql`. The normal startup migration lock applies it once. It adds scope revisions, source identifiers, lifecycle status, and retained-content visibility. Existing rows have unknown source provenance: a targeted mutation conservatively retires legacy generated records in that scope because their dependencies cannot be proven. Test this upgrade on a restored copy before deployment.
+
+Monitor revision-conflict responses, outbox age, and queued deletion events. A successful memory deletion prevents live retrieval immediately in PostgreSQL; physical Neo4j erasure is asynchronous and requires the outbox to drain. Keep content-free graph revision tombstones to prevent old workers replaying content. Backups, exports, client caches and model-provider retention need separate expiry/deletion procedures.
+
+Streaming clients require proxy buffering to be disabled and idle/request timeouts sized for the configured generation deadline. Only a final event signals durable completion. Do not blindly retry a failed charged request or a memory mutation: refresh revisions after409 and let the calling application decide. The compatibility adapter is explicitly text-only and is not a full implementation of every OpenAI API feature.
+
+The inspector shell is served with a restrictive Content Security Policy and no third-party assets. Require HTTPS and operator access controls at your ingress. Do not embed tenant tokens in frontend applications; Python/TypeScript SDKs are for trusted application servers. Packages are source-installable; no public package registry release is implied by this upgrade.

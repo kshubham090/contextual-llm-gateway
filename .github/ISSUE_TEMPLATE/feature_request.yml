@@ -1,0 +1,22 @@
+name: Feature request
+description: Propose one concrete workflow or improvement.
+body:
+  - type: textarea
+    id: workflow
+    attributes:
+      label: User and workflow
+      description: Who needs this and what task can they not complete today?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed behavior
+      description: Give a concrete example and explain how you would measure success.
+    validations:
+      required: true
+  - type: textarea
+    id: tradeoffs
+    attributes:
+      label: Alternatives and tradeoffs
+      description: Consider scope isolation, API compatibility, operating cost, and failure behavior.

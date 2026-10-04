@@ -6,12 +6,13 @@ edge and every node on a traversed path must satisfy the same scope and TTL.
 
 import hashlib
 import json
+import math
 from datetime import UTC, datetime, timedelta
 
 from neo4j import AsyncGraphDatabase, Query, unit_of_work
 
 from .config import settings
-from .db import _scope
+from .db import _memory_scope, _scope
 
 CONSTRAINTS = [
     f"CREATE CONSTRAINT gateway_{label.lower()}_key IF NOT EXISTS "
@@ -80,6 +81,42 @@ class MemoryGraph:
         except Exception:
             return False
 
+    async def console_edges(
+        self, ids: list[str], *, tenant_id: str, user_id: str, feature_tag: str, limit: int = 320,
+    ) -> dict:
+        """Return actual directed memory edges in a bounded, scoped induced graph.
+
+        No projected text is returned. The caller must revalidate endpoint IDs
+        against PostgreSQL after this potentially lagging projection is read.
+        """
+        _memory_scope(tenant_id, user_id, feature_tag)
+        selected = list(dict.fromkeys(ids[:80]))
+        size = max(1, min(limit, 320))
+        if not selected:
+            return {"edges": [], "truncated": False}
+        async with self.driver.session() as session:
+            result = await session.run(self._query("""
+                UNWIND $keys AS key
+                MATCH (c:GatewayCall {key:key})-[r:SIMILAR_TO|INFORMED_BY]->(o:GatewayCall)
+                WHERE c.id IN $ids AND o.id IN $ids
+                  AND c.tenant_id=$tenant_id AND c.user_id=$user_id AND c.feature_tag=$feature_tag
+                  AND o.tenant_id=$tenant_id AND o.user_id=$user_id AND o.feature_tag=$feature_tag
+                  AND r.tenant_id=$tenant_id AND r.user_id=$user_id AND r.feature_tag=$feature_tag
+                  AND c.expires_at>datetime() AND o.expires_at>datetime() AND r.expires_at>datetime()
+                  AND coalesce(c.memory_status,'active')='active'
+                  AND coalesce(o.memory_status,'active')='active'
+                RETURN DISTINCT c.id AS source,o.id AS target,type(r) AS type,r.score AS similarity
+                LIMIT $limit
+            """), keys=[_key(tenant_id, user_id, feature_tag, value) for value in selected],
+                ids=selected, tenant_id=tenant_id, user_id=user_id, feature_tag=feature_tag, limit=size + 1)
+            rows = [dict(record) async for record in result]
+        for row in rows:
+            score = row["similarity"]
+            row["similarity"] = (
+                float(score) if isinstance(score, (int, float)) and math.isfinite(score) else None
+            )
+        return {"edges": rows[:size], "truncated": len(rows) > size}
+
     async def expand_neighborhood(
         self, seed_ids: list[str], limit: int, *, tenant_id: str = "local",
         user_id: str, feature_tag: str,
@@ -94,10 +131,12 @@ class MemoryGraph:
                 WHERE c.id IN $seed_ids AND c.tenant_id = $tenant_id
                   AND c.user_id = $user_id AND c.feature_tag = $feature_tag
                   AND c.expires_at > datetime()
+                  AND coalesce(c.memory_status, 'active') = 'active'
                 MATCH path = (c)-[:SIMILAR_TO|INFORMED_BY*0..2]-(n:GatewayCall)
                 WHERE all(node IN nodes(path) WHERE node:GatewayCall
                           AND node.tenant_id = $tenant_id AND node.user_id = $user_id
-                          AND node.feature_tag = $feature_tag AND node.expires_at > datetime())
+                          AND node.feature_tag = $feature_tag AND node.expires_at > datetime()
+                          AND coalesce(node.memory_status, 'active') = 'active')
                   AND all(edge IN relationships(path) WHERE edge.tenant_id = $tenant_id
                           AND edge.user_id = $user_id AND edge.feature_tag = $feature_tag
                           AND edge.expires_at > datetime())
@@ -127,7 +166,7 @@ class MemoryGraph:
         response: str, model: str, provider: str, fallback_provider: str | None,
         tokens_in: int, tokens_out: int, cost: float | None, latency_ms: int,
         similar: list[dict], informed_by: list[str], tenant_id: str = "local",
-        created_at: str | None = None, expires_at: str | None = None,
+        created_at: str | None = None, expires_at: str | None = None, memory_revision: int = 1,
     ) -> None:
         _scope(tenant_id, user_id, feature_tag)
         created_at, expires_at, expired = _times(created_at, expires_at)
@@ -142,15 +181,22 @@ class MemoryGraph:
             provider_key=_key(tenant_id, user_id, feature_tag, "provider", provider),
             prompt=prompt, response=response, model=model, provider=provider,
             tokens_in=tokens_in, tokens_out=tokens_out, cost=cost, latency_ms=latency_ms,
-            created_at=created_at, expires_at=expires_at,
+            created_at=created_at, expires_at=expires_at, memory_revision=memory_revision,
         )
         statements = [("""
             MERGE (c:GatewayCall {key: $call_key})
-            ON CREATE SET c.id = $call_id, c.tenant_id = $tenant_id, c.user_id = $user_id,
-                c.feature_tag = $feature_tag, c.prompt = $prompt, c.response = $response,
-                c.tokens_in = $tokens_in, c.tokens_out = $tokens_out, c.cost = $cost,
-                c.latency_ms = $latency_ms, c.created_at = datetime($created_at),
-                c.expires_at = datetime($expires_at), c.cache_hit = false
+            ON CREATE SET c.memory_revision = 0
+            SET c.memory_revision = coalesce(c.memory_revision, 1)
+            WITH c WHERE c.memory_revision < $memory_revision OR
+                (c.memory_revision = $memory_revision
+                  AND coalesce(c.memory_status, 'active') = 'active')
+            FOREACH (ignored IN CASE WHEN c.memory_revision < $memory_revision THEN [1] ELSE [] END |
+                SET c.id = $call_id, c.tenant_id = $tenant_id, c.user_id = $user_id,
+                    c.feature_tag = $feature_tag, c.prompt = $prompt, c.response = $response,
+                    c.tokens_in = $tokens_in, c.tokens_out = $tokens_out, c.cost = $cost,
+                    c.latency_ms = $latency_ms, c.created_at = datetime($created_at),
+                    c.expires_at = datetime($expires_at), c.cache_hit = false,
+                    c.memory_revision = $memory_revision, c.memory_status = 'active')
             MERGE (u:GatewayUser {key: $user_key})
             SET u.id = $user_id, u.tenant_id = $tenant_id, u.user_id = $user_id,
                 u.feature_tag = $feature_tag
@@ -174,6 +220,8 @@ class MemoryGraph:
         if fallback_provider:
             statements.append(("""
                 MATCH (c:GatewayCall {key: $call_key})
+                WHERE coalesce(c.memory_status, 'active') = 'active'
+                      AND c.memory_revision = $memory_revision
                 MERGE (p:GatewayProvider {key: $fallback_key})
                 SET p.name = $fallback_provider, p.tenant_id = $tenant_id,
                     p.user_id = $user_id, p.feature_tag = $feature_tag
@@ -189,10 +237,13 @@ class MemoryGraph:
             if candidates:
                 statements.append((f"""
                     MATCH (c:GatewayCall {{key: $call_key}})
+                    WHERE coalesce(c.memory_status, 'active') = 'active'
+                      AND c.memory_revision = $memory_revision
                     UNWIND $candidates AS candidate
                     MATCH (o:GatewayCall {{id: candidate.id, tenant_id: $tenant_id,
                                           user_id: $user_id, feature_tag: $feature_tag}})
-                    WHERE o.expires_at > datetime() AND o.key <> c.key
+                    WHERE o.expires_at > datetime()
+                      AND coalesce(o.memory_status, 'active') = 'active' AND o.key <> c.key
                     MERGE (c)-[r:{relation}]->(o)
                     ON CREATE SET r.score = candidate.score, r.tenant_id = $tenant_id,
                         r.user_id = $user_id, r.feature_tag = $feature_tag,
@@ -204,7 +255,7 @@ class MemoryGraph:
     async def write_cache_hit(
         self, *, call_id: str, user_id: str, feature_tag: str, prompt: str,
         cached_call_id: str, similarity: float, tenant_id: str = "local",
-        created_at: str | None = None, expires_at: str | None = None,
+        created_at: str | None = None, expires_at: str | None = None, memory_revision: int = 1,
     ) -> None:
         _scope(tenant_id, user_id, feature_tag)
         created_at, expires_at, expired = _times(created_at, expires_at)
@@ -212,9 +263,16 @@ class MemoryGraph:
             return
         await self._write([("""
             MERGE (c:GatewayCall {key: $call_key})
-            ON CREATE SET c.id = $call_id, c.tenant_id = $tenant_id, c.user_id = $user_id,
-                c.feature_tag = $feature_tag, c.prompt = $prompt, c.cache_hit = true,
-                c.created_at = datetime($created_at), c.expires_at = datetime($expires_at)
+            ON CREATE SET c.memory_revision = 0
+            SET c.memory_revision = coalesce(c.memory_revision, 1)
+            WITH c WHERE c.memory_revision < $memory_revision OR
+                (c.memory_revision = $memory_revision
+                  AND coalesce(c.memory_status, 'active') = 'active')
+            FOREACH (ignored IN CASE WHEN c.memory_revision < $memory_revision THEN [1] ELSE [] END |
+                SET c.id = $call_id, c.tenant_id = $tenant_id, c.user_id = $user_id,
+                    c.feature_tag = $feature_tag, c.prompt = $prompt, c.cache_hit = true,
+                    c.created_at = datetime($created_at), c.expires_at = datetime($expires_at),
+                    c.memory_revision = $memory_revision, c.memory_status = 'active')
             MERGE (u:GatewayUser {key: $user_key})
             SET u.id = $user_id, u.tenant_id = $tenant_id, u.user_id = $user_id,
                 u.feature_tag = $feature_tag
@@ -229,6 +287,7 @@ class MemoryGraph:
             MATCH (o:GatewayCall {id: $cached_call_id, tenant_id: $tenant_id,
                                   user_id: $user_id, feature_tag: $feature_tag})
             WHERE o.expires_at > datetime()
+                      AND coalesce(o.memory_status, 'active') = 'active'
             MERGE (c)-[r:SERVED_FROM_CACHE]->(o)
             ON CREATE SET r.score = $similarity, r.tenant_id = $tenant_id,
                 r.user_id = $user_id, r.feature_tag = $feature_tag,
@@ -240,7 +299,33 @@ class MemoryGraph:
             user_key=_key(tenant_id, user_id, feature_tag, "user"),
             feature_key=_key(tenant_id, user_id, feature_tag, "feature"),
             prompt=prompt, cached_call_id=cached_call_id, similarity=similarity,
-            created_at=created_at, expires_at=expires_at,
+            created_at=created_at, expires_at=expires_at, memory_revision=memory_revision,
+        ))])
+
+    async def delete_call(
+        self, *, call_id: str, tenant_id: str, user_id: str, feature_tag: str,
+        memory_revision: int,
+    ) -> None:
+        """Keep a content-free revision fence so delayed old writes cannot resurrect it.
+
+        The dependent SET obtains the node's write lock before checking its
+        revision. Tombstones intentionally have no expiry and are never retrieved.
+        """
+        _scope(tenant_id, user_id, feature_tag)
+        await self._write([("""
+            MERGE (c:GatewayCall {key: $call_key})
+            ON CREATE SET c.memory_revision = 0
+            SET c.memory_revision = coalesce(c.memory_revision, 1)
+            WITH c WHERE c.memory_revision <= $memory_revision
+            OPTIONAL MATCH (c)-[r]-()
+            DELETE r
+            WITH DISTINCT c
+            SET c = {key:$call_key,id:$call_id,tenant_id:$tenant_id,user_id:$user_id,
+                     feature_tag:$feature_tag,memory_revision:$memory_revision,memory_status:'deleted'}
+        """, dict(
+            call_key=_key(tenant_id, user_id, feature_tag, call_id), call_id=call_id,
+            tenant_id=tenant_id, user_id=user_id, feature_tag=feature_tag,
+            memory_revision=memory_revision,
         ))])
 
     async def stats(
@@ -249,6 +334,7 @@ class MemoryGraph:
         _scope(tenant_id, user_id, feature_tag)
         scope = """
             c.tenant_id = $tenant_id AND c.expires_at > datetime()
+                  AND coalesce(c.memory_status, 'active') = 'active'
             AND ($user_id IS NULL OR c.user_id = $user_id)
             AND ($feature_tag IS NULL OR c.feature_tag = $feature_tag)
         """
@@ -258,12 +344,14 @@ class MemoryGraph:
             CALL {{ MATCH (c:GatewayCall)-[r:SIMILAR_TO]->(o:GatewayCall)
                 WHERE {scope} AND o.tenant_id = c.tenant_id AND o.user_id = c.user_id
                   AND o.feature_tag = c.feature_tag AND o.expires_at > datetime()
+                      AND coalesce(o.memory_status, 'active') = 'active'
                   AND r.tenant_id = c.tenant_id AND r.user_id = c.user_id
                   AND r.feature_tag = c.feature_tag AND r.expires_at > datetime()
                 RETURN count(r) AS similar_edges }}
             CALL {{ MATCH (c:GatewayCall)-[r:INFORMED_BY]->(o:GatewayCall)
                 WHERE {scope} AND o.tenant_id = c.tenant_id AND o.user_id = c.user_id
                   AND o.feature_tag = c.feature_tag AND o.expires_at > datetime()
+                      AND coalesce(o.memory_status, 'active') = 'active'
                   AND r.tenant_id = c.tenant_id AND r.user_id = c.user_id
                   AND r.feature_tag = c.feature_tag AND r.expires_at > datetime()
                 RETURN count(r) AS informed_by_edges }}

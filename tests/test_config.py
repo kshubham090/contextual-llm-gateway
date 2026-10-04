@@ -47,3 +47,17 @@ def test_configuration_errors_do_not_expose_other_credential_fields():
         Settings(_env_file=None, gateway_api_keys={secret: "tenant"},
                  database_pool_min_size=10, database_pool_max_size=1)
     assert secret not in str(exc.value)
+
+
+@pytest.mark.parametrize("url", ["file:///tmp/model", "https://secret@example.com/v1",
+                                 "https://example.com/v1?key=secret", "https://example.com/#token"])
+def test_provider_urls_reject_credentials_and_unsupported_schemes(url):
+    with pytest.raises(ValidationError):
+        Settings(_env_file=None, openai_base_url=url)
+
+
+def test_local_generation_can_start_without_anthropic_or_openai_credentials():
+    config = Settings(_env_file=None, gateway_api_keys={"x" * 40: "team"},
+                      generation_backend="openai_compatible", openai_base_url="http://127.0.0.1:8001/v1",
+                      openai_api_key="", anthropic_api_key="", embedding_backend="local")
+    config.validate_runtime()
