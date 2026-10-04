@@ -9,7 +9,7 @@
 [![FastAPI](https://img.shields.io/badge/API-FastAPI-009688)](https://fastapi.tiangolo.com/)
 [![Memory](https://img.shields.io/badge/Memory-pgvector%20%2B%20Neo4j-4581C3)](docs/architecture.md)
 
-[Memory Studio](#memory-studio-and-a-demo-without-provider-keys) · [SDKs](docs/integration.md) · [Architecture](docs/architecture.md) · [Use cases](docs/use-cases.md) · [Evaluation](docs/evaluation.md) · [Operations](docs/operations.md) · [Security](docs/security.md)
+[Memory Console](#memory-console-and-a-demo-without-provider-keys) · [SDKs](docs/integration.md) · [Architecture](docs/architecture.md) · [Use cases](docs/use-cases.md) · [Evaluation](docs/evaluation.md) · [Operations](docs/operations.md) · [Security](docs/security.md)
 
 </div>
 
@@ -56,11 +56,11 @@ flowchart LR
 
 Graph memory can improve continuity when past interactions contain useful facts. It also adds retrieval work, prompt tokens, and potential stale or incorrect context. Measure those tradeoffs on the intended workload. For general one-off questions, use `use_graph: false`.
 
-## Memory Studio and a demo without provider keys
+## Memory Console and a demo without provider keys
 
-![Memory Studio with fictional support data](docs/images/memory-studio.png)
+![Memory Console with real local-model activity and fictional support data](docs/images/memory-studio.png)
 
-Memory Studio is a same-origin operator interface at `/inspector`. Browse the selected user/feature timeline, stream an answer, inspect its exact source records, add verified facts, correct a stale rule, or forget memory and its derived answers. Tokens live only in the open tab; scope changes clear conversation drafts. Tenant tokens belong to trusted operators and application servers, never end users.
+Memory Console is a same-origin application at `/inspector`, with overview, playground, live graph, memory library, retrieval comparison and connection views. Inspect actual request activity and latency, explore graph relationships, ask the configured model, follow exact source records, and correct or forget memory and its derived answers. Tokens live only in the open tab; scope changes clear conversation drafts. Tenant tokens belong to trusted operators and application servers, never end users.
 
 For a **fresh checkout**, use the local demo to try the entire workflow with real PostgreSQL, Neo4j, and Redis and explicitly synthetic inference:
 
@@ -68,14 +68,14 @@ For a **fresh checkout**, use the local demo to try the entire workflow with rea
 python -m venv .venv
 source .venv/bin/activate
 pip install -r requirements-dev.txt
-python scripts/setup_demo.py
-docker compose up -d postgres neo4j redis
-python scripts/demo_server.py
+python scripts/start_console.py --open
 ```
 
-Open [Memory Studio](http://127.0.0.1:8001/inspector), enter the token from the key in `.env`'s `GATEWAY_API_KEYS`, connect, and choose **Load support example**. Ask what the returning customer should do next. Follow a source, change its escalation rule, and ask again. The replacement is active; the old memory and dependent answers lose their retained content.
+Open [Memory Console](http://127.0.0.1:8001/inspector), enter the token from the key in `.env`'s `GATEWAY_API_KEYS`, connect, and open **Memory library → Load support example**. Open **Playground** and ask what the returning customer should do next. Follow a source, change its escalation rule, and ask again. The replacement is active; the old memory and dependent answers lose their retained content.
 
-The setup script refuses to overwrite an existing `.env`. The demo binds to loopback, uses no paid provider, and is excluded from the production image. Its text is a fixture that echoes context, **not a model-quality demonstration**. For real generation, configure a provider and start the normal app below. See [the complete walkthrough](docs/memory-studio.md).
+The launcher creates a demo `.env` only when it is absent, preserves existing configuration, starts PostgreSQL/Neo4j/Redis with health checks, and opens the running console after the gateway is ready. Docker must already be running and Python dependencies must be installed; the launcher does not install software. The default Compose project is `contextual-gateway-console`; use `--project NAME` to select a project explicitly. If your storage services already run elsewhere, use `--no-services` with their matching connection settings. Storage services and volumes remain running after Ctrl+C stops the launcher-owned gateway.
+
+The demo binds to loopback, uses no paid provider, and is excluded from the production image. Its text is a fixture that echoes context, **not a model-quality demonstration**. `--open` opens the browser; omitting it prints the URL without opening a tab. Tokens are never inserted into the URL or browser page. Open the HTTP console URL rather than the `index.html` source file. See [launcher options and the complete walkthrough](docs/memory-studio.md).
 
 ## Quickstart with real inference
 
@@ -98,8 +98,12 @@ python -c 'import secrets; print(secrets.token_hex(24))'
 
 If you used the demo, preserve its existing database passwords and gateway tokens; add provider settings to the same `.env`. For a new environment, generate separate random values for the gateway token, metrics token, and each infrastructure password. Fill in `.env`, including `ANTHROPIC_API_KEY`, `VOYAGE_API_KEY`, `POSTGRES_PASSWORD`, `NEO4J_PASSWORD`, and `REDIS_PASSWORD`. Set the gateway mapping to a JSON object such as `GATEWAY_API_KEYS={"<your-random-token>":"demo-team"}`. An empty mapping is rejected at startup.
 
+The local launcher runs the gateway on your host. If you copied `.env.example`, replace `REPLACE_POSTGRES_PASSWORD` in `DATABASE_URL` and `REPLACE_REDIS_PASSWORD` in `REDIS_URL` with the corresponding passwords above. Keep the loopback addresses; use URL-safe passwords or URL-encode them in these URLs. The generated demo `.env` already has matching URLs.
+
+To use those settings in the local console, run `python scripts/start_console.py --mode configured --open`. This starts the normal gateway on loopback port 8001 with your configured generation backend. Add `--no-services` when reusing already-running stores; the launcher does not download or start a local generation server. To run the gateway itself in Docker on port 8000 instead:
+
 ```bash
-docker compose up --build -d
+docker compose --project-name contextual-gateway-console up --build -d
 curl --fail http://127.0.0.1:8000/health/ready
 ```
 
@@ -115,7 +119,7 @@ curl --fail-with-body http://127.0.0.1:8000/v1/chat \
   -d '{"prompt":"Our Orbit rollback restores the image but requires a separate config revert. Summarize that rule.","user_id":"engineer-42","feature_tag":"deployments","max_tokens":250}'
 ```
 
-For a host-run app, start `docker compose up -d postgres neo4j redis`, set the host connection URLs in `.env` to the matching passwords, and run `uvicorn app.main:app --reload`.
+Use the same Compose project name if you customized the launcher's `--project`; project names select separate containers and volumes. For a host-run app with existing stores, set the host connection URLs in `.env` to the matching passwords and run `python scripts/start_console.py --mode configured --no-services --open`.
 
 ## API contract
 

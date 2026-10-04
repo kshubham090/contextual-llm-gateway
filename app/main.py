@@ -17,6 +17,7 @@ from . import metrics
 from .auth import Principal, authenticate, authenticate_metrics
 from .chat_api import router as chat_router
 from .config import settings
+from .console_api import router as console_router
 from .db import Database, MemoryConflict
 from .embeddings import EmbeddingClient, EmbeddingClosedError, EmbeddingError, EmbeddingOverloadedError
 from .graph import MemoryGraph
@@ -99,6 +100,7 @@ def create_app(*, lifespan_handler=lifespan) -> FastAPI:
     app.include_router(inspector_router)
     app.include_router(chat_router)
     app.include_router(memory_router)
+    app.include_router(console_router)
 
     @app.middleware("http")
     async def request_context(request: Request, call_next):

@@ -17,10 +17,20 @@ Three subagents implemented independent areas, then reviewed one another's chang
 | SDK status types and reproduction settings lagged the final API/run | Both client types include expired memory, and the local-model instructions specify the actual run's frozen graph threshold. |
 | An old evaluation request could cancel its successor's native job | Cancellation now signals a request-local stop flag. The reviewer's deterministic completion-delivery race is covered by a regression. |
 
+## Console completion and additional cross-review
+
+The operator screen now exposes overview, playground, live graph, library, comparison and connection views. The local launcher starts the HTTP application instead of requiring users to open an HTML source file. The normal gateway was verified with real pinned Qwen generation, local MiniLM embeddings and the three backing stores; the synthetic demo remains clearly separate.
+
+- Added scoped accounting and graph data endpoints, including bounds, live PostgreSQL rehydration after graph reads, mutation revision checks, outage handling and safe configuration metadata.
+- Fixed late detail selections, reconnect callbacks and post-mutation refreshes crossing browser sessions. Stale responses and errors cannot overwrite a newer workspace; mutation invalidation clears pending reads and exports.
+- Fixed empty model selector values and empty-cohort latency display. Token-limit/filter stops remain visible alongside durable completion. Comparisons show failed/unrun modes and model/revision mismatches explicitly.
+- Verified 26 launcher tests, including exact env-file selection, occupied-port refusal and owned-process cleanup on interrupt/termination. Backing-service volumes are preserved.
+- Browser verification exercised actual local-model chat, source inspection, real graph relationships, three retrieval modes and inspectable/copied JSON exports. Export text excludes the active credential.
+
 ## Local verification
 
-- 253 gateway/tool tests, including 22 opted-in PostgreSQL/Neo4j/Redis service tests.
-- 26 Python client tests, 21 TypeScript client tests, and four inspector behavior tests: 304 in total.
+- 288 gateway/tool tests, including 28 opted-in PostgreSQL/Neo4j/Redis service tests.
+- 26 Python client tests, 21 TypeScript client tests, and 25 console behavior tests: 360 in total.
 - Python lint, JavaScript syntax, client package builds, and whitespace validation.
 - Both support client examples exercised creation, correction, streaming final metadata, listing, and scope deletion over real loopback HTTP.
 - Browser workflow verified at desktop and 390-pixel mobile widths: load synthetic records, stream an answer, follow a source, correct the record, and retrieve the replacement. Preview images contain fictional data and no token.

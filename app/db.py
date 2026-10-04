@@ -709,3 +709,122 @@ class Database:
             }
             for r in rows
         ]
+
+    async def console_overview(self, *, tenant_id: str, user_id: str, feature_tag: str) -> dict:
+        """A consistent, content-free accounting view of one complete memory scope."""
+        _memory_scope(tenant_id, user_id, feature_tag)
+        boundary = (tenant_id, user_id, feature_tag)
+        aggregates = """
+            count(*) AS calls, count(*) FILTER (WHERE cache_hit) AS cache_hits,
+            coalesce(sum(tokens_in),0) AS tokens_in, coalesce(sum(tokens_out),0) AS tokens_out,
+            coalesce(sum(cost),0) AS known_cost,
+            count(*) FILTER (WHERE cost IS NULL) AS unpriced_calls,
+            coalesce(avg(latency_ms),0) AS mean_latency_ms,
+            coalesce(percentile_cont(0.95) WITHIN GROUP (ORDER BY latency_ms),0) AS p95_latency_ms
+        """
+        accounting = """
+            FROM calls WHERE tenant_id=$1 AND user_id=$2 AND feature_tag=$3
+              AND memory_kind <> 'curated' AND created_at >= $4 AND created_at <= $5
+        """
+
+        def totals(row):
+            return {key: (float(value) if key in {
+                "known_cost", "mean_latency_ms", "p95_latency_ms",
+            } else int(value)) for key, value in dict(row).items() if key != "day"}
+
+        async with self.pool.acquire() as conn:
+            async with conn.transaction(isolation="repeatable_read", readonly=True):
+                as_of = await conn.fetchval("SELECT now()")
+                start = as_of.astimezone(UTC).replace(
+                    hour=0, minute=0, second=0, microsecond=0,
+                ) - timedelta(days=6)
+                revision = await conn.fetchval(
+                    "SELECT revision FROM memory_scopes WHERE tenant_id=$1 AND user_id=$2 AND feature_tag=$3",
+                    *boundary,
+                ) or 0
+                total = totals(await conn.fetchrow(
+                    f"SELECT {aggregates} {accounting}", *boundary, start, as_of,
+                ))
+                days = await conn.fetch(
+                    f"SELECT (created_at AT TIME ZONE 'UTC')::date AS day, {aggregates} "
+                    f"{accounting} GROUP BY day ORDER BY day", *boundary, start, as_of,
+                )
+                recent = await conn.fetch(
+                    "SELECT id,created_at,model,provider,latency_ms,cache_hit,fallback_used,"
+                    "tokens_in,tokens_out,cost,memory_status,"
+                    "coalesce(memory_status='active' AND expires_at>$5 AND prompt IS NOT NULL "
+                    "AND response IS NOT NULL,false) AS retained_content "
+                    f"{accounting} ORDER BY created_at DESC,id DESC LIMIT 20", *boundary, start, as_of,
+                )
+                memory = await conn.fetchrow("""
+                    SELECT count(*) AS total_count,
+                        count(*) FILTER (WHERE memory_status='active' AND expires_at>$4
+                            AND prompt IS NOT NULL AND response IS NOT NULL) AS active_count,
+                        count(*) FILTER (WHERE memory_status<>'active') AS retired_count,
+                        count(*) FILTER (WHERE memory_status='active'
+                            AND (expires_at<=$4 OR expires_at IS NULL)) AS expired_count,
+                        count(*) FILTER (WHERE memory_status='active' AND expires_at>$4
+                            AND prompt IS NOT NULL AND response IS NOT NULL
+                            AND memory_kind='curated') AS curated_active_count
+                    FROM calls WHERE tenant_id=$1 AND user_id=$2 AND feature_tag=$3
+                        AND memory_visible AND NOT cache_hit
+                """, *boundary, as_of)
+        daily = {row["day"].isoformat(): totals(row) for row in days}
+        empty = {key: 0 for key in total}
+        return {
+            "scope": {"user_id": user_id, "feature_tag": feature_tag}, "scope_revision": revision,
+            "window": {"days": 7, "start": start.isoformat(), "end": as_of.isoformat(), "timezone": "UTC"},
+            "totals": total,
+            "daily": [
+                {"day": (start + timedelta(days=index)).date().isoformat(),
+                 **daily.get((start + timedelta(days=index)).date().isoformat(), empty)} for index in range(7)
+            ],
+            "recent_requests": [
+                {**dict(row), "id": str(row["id"]), "created_at": row["created_at"].isoformat(),
+                 "cost": float(row["cost"]) if row["cost"] is not None else None} for row in recent
+            ],
+            "memory": dict(memory),
+        }
+
+    async def console_graph_snapshot(
+        self, *, tenant_id: str, user_id: str, feature_tag: str, limit: int = 60,
+        ids: list[str] | None = None, expected_revision: int | None = None,
+    ) -> dict:
+        """Read graph previews only from live authoritative rows in one snapshot.
+
+        The second read, after querying Neo4j, checks the mutation epoch and
+        rehydrates the initial IDs. Natural expiry is also rechecked here.
+        """
+        _memory_scope(tenant_id, user_id, feature_tag)
+        size = max(1, min(limit, 80))
+        selected = None if ids is None else [uuid.UUID(value) for value in ids[:80]]
+        active = """
+            FROM calls WHERE tenant_id=$1 AND user_id=$2 AND feature_tag=$3
+              AND memory_visible AND NOT cache_hit AND memory_status='active'
+              AND expires_at>$4 AND prompt IS NOT NULL AND response IS NOT NULL
+        """
+        async with self.pool.acquire() as conn:
+            async with conn.transaction(isolation="repeatable_read", readonly=True):
+                revision = await conn.fetchval(
+                    "SELECT revision FROM memory_scopes WHERE tenant_id=$1 AND user_id=$2 AND feature_tag=$3",
+                    tenant_id, user_id, feature_tag,
+                ) or 0
+                if expected_revision is not None and expected_revision != revision:
+                    raise MemoryConflict()
+                as_of = await conn.fetchval("SELECT clock_timestamp()")
+                count = await conn.fetchval(
+                    f"SELECT count(*) {active}", tenant_id, user_id, feature_tag, as_of,
+                )
+                rows = await conn.fetch(
+                    "SELECT id,left(prompt,180) AS prompt_preview,created_at,expires_at,memory_kind,"
+                    "memory_revision AS revision,coalesce(cardinality(source_ids),0) AS source_count "
+                    f"{active} AND ($5::uuid[] IS NULL OR id=ANY($5::uuid[])) "
+                    "ORDER BY created_at DESC,id DESC LIMIT $6",
+                    tenant_id, user_id, feature_tag, as_of, selected, size,
+                )
+        return {
+            "scope": {"user_id": user_id, "feature_tag": feature_tag}, "scope_revision": revision,
+            "as_of": as_of.isoformat(), "total_active_nodes": count,
+            "nodes": [{**dict(row), "id": str(row["id"]), "created_at": row["created_at"].isoformat(),
+                       "expires_at": row["expires_at"].isoformat()} for row in rows],
+        }

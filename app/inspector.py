@@ -3,7 +3,7 @@
 from pathlib import Path
 
 from fastapi import APIRouter, HTTPException
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, RedirectResponse
 
 router = APIRouter(include_in_schema=False)
 ROOT = Path(__file__).parent / "static"
@@ -14,6 +14,11 @@ HEADERS = {
     "Referrer-Policy": "no-referrer",
     "Cache-Control": "no-store",
 }
+
+
+@router.get("/")
+async def console_home():
+    return RedirectResponse("/inspector", status_code=307, headers=HEADERS)
 
 
 @router.get("/inspector")

@@ -12,9 +12,10 @@ announce a published tag, package, image, or hosted service.
   dependent cached/contextual results; graph updates and erasure are queued.
 - Native SSE chat streaming with provisional text deltas, explicit errors, and
   a final event that confirms durable accounting/memory completion.
-- Memory Studio, a same-origin operator interface for scoped timelines, source
-  inspection, streamed answers, correction, and forgetting. A local setup and
-  synthetic inference demo exercise the workflow with real backing stores.
+- Memory Console with scoped request analytics, real graph exploration, library
+  search and lifecycle controls, complete/streaming chat, retrieval comparisons
+  and safe runtime/integration views. A supervised local launcher starts the
+  application with synthetic demo or configured inference and real backing stores.
 - Configurable OpenAI-compatible generation alongside Anthropic, plus an
   explicitly limited text Chat Completions adapter. Unsupported fields are
   rejected; native SDKs retain the full gateway metadata.

@@ -6,12 +6,13 @@ edge and every node on a traversed path must satisfy the same scope and TTL.
 
 import hashlib
 import json
+import math
 from datetime import UTC, datetime, timedelta
 
 from neo4j import AsyncGraphDatabase, Query, unit_of_work
 
 from .config import settings
-from .db import _scope
+from .db import _memory_scope, _scope
 
 CONSTRAINTS = [
     f"CREATE CONSTRAINT gateway_{label.lower()}_key IF NOT EXISTS "
@@ -79,6 +80,42 @@ class MemoryGraph:
                 return record is not None and record["healthy"] == 1
         except Exception:
             return False
+
+    async def console_edges(
+        self, ids: list[str], *, tenant_id: str, user_id: str, feature_tag: str, limit: int = 320,
+    ) -> dict:
+        """Return actual directed memory edges in a bounded, scoped induced graph.
+
+        No projected text is returned. The caller must revalidate endpoint IDs
+        against PostgreSQL after this potentially lagging projection is read.
+        """
+        _memory_scope(tenant_id, user_id, feature_tag)
+        selected = list(dict.fromkeys(ids[:80]))
+        size = max(1, min(limit, 320))
+        if not selected:
+            return {"edges": [], "truncated": False}
+        async with self.driver.session() as session:
+            result = await session.run(self._query("""
+                UNWIND $keys AS key
+                MATCH (c:GatewayCall {key:key})-[r:SIMILAR_TO|INFORMED_BY]->(o:GatewayCall)
+                WHERE c.id IN $ids AND o.id IN $ids
+                  AND c.tenant_id=$tenant_id AND c.user_id=$user_id AND c.feature_tag=$feature_tag
+                  AND o.tenant_id=$tenant_id AND o.user_id=$user_id AND o.feature_tag=$feature_tag
+                  AND r.tenant_id=$tenant_id AND r.user_id=$user_id AND r.feature_tag=$feature_tag
+                  AND c.expires_at>datetime() AND o.expires_at>datetime() AND r.expires_at>datetime()
+                  AND coalesce(c.memory_status,'active')='active'
+                  AND coalesce(o.memory_status,'active')='active'
+                RETURN DISTINCT c.id AS source,o.id AS target,type(r) AS type,r.score AS similarity
+                LIMIT $limit
+            """), keys=[_key(tenant_id, user_id, feature_tag, value) for value in selected],
+                ids=selected, tenant_id=tenant_id, user_id=user_id, feature_tag=feature_tag, limit=size + 1)
+            rows = [dict(record) async for record in result]
+        for row in rows:
+            score = row["similarity"]
+            row["similarity"] = (
+                float(score) if isinstance(score, (int, float)) and math.isfinite(score) else None
+            )
+        return {"edges": rows[:size], "truncated": len(rows) > size}
 
     async def expand_neighborhood(
         self, seed_ids: list[str], limit: int, *, tenant_id: str = "local",
