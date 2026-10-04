@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light"><title>Memory Studio · Lowq</title>
+  <link rel="stylesheet" href="/inspector/assets/studio.css">
+  <script type="module" src="/inspector/assets/studio.js"></script>
+</head>
+<body>
+  <header class="topbar"><a href="/inspector" class="brand" aria-label="Lowq Memory Studio"><span class="brand-icon">L</span> lowq<span class="brand-sub">/ Memory Studio</span></a><span class="badge">SELF-HOSTED · OPEN SOURCE</span></header>
+  <main>
+    <section class="intro"><div><p class="eyebrow">CONTEXT, WITH A CLEAR HISTORY</p><h1>A better answer starts<br>with the right memory.</h1><p class="lede">See what your assistant remembers. Test a reply. Correct the record.</p></div><div class="intro-note"><span class="status-dot"></span><span id="connection-status">Connect to your workspace</span><small>Memory stays within the selected user and feature.</small></div></section>
+    <form id="connect-form" class="connection panel">
+      <label>Gateway token<input id="token" type="password" autocomplete="off" placeholder="Operator access token" required></label>
+      <label>User<input id="user" value="support-demo" maxlength="128" pattern="[\w.@:-]+" required></label>
+      <label>Feature<input id="feature" value="customer-support" maxlength="128" pattern="[\w.@:-]+" required></label>
+      <button type="submit" id="connect">Connect</button><button type="button" id="disconnect" class="quiet" hidden>Disconnect</button>
+      <p class="connection-help">For trusted operators. The token is kept only in this tab’s memory and cleared on disconnect or reload. Never give a tenant token to end users.</p>
+    </form>
+    <div id="notice" role="status" aria-live="polite" class="notice" hidden></div>
+    <section class="workspace" aria-label="Memory workspace">
+      <aside class="panel memories"><div class="panel-heading"><div><p class="eyebrow">01 / THE RECORD</p><h2>Memory timeline <span id="count" class="count">0</span></h2></div><button id="refresh" class="icon-button" title="Refresh memories" aria-label="Refresh memories" disabled>↻</button></div>
+        <div class="memory-actions"><button id="new-memory" class="quiet" disabled>+ Add memory</button><button id="seed" class="quiet" disabled>Load support example</button></div>
+        <p id="empty" class="empty">Connect a workspace to explore its history.<br><span>Every answer has a starting point.</span></p><ol id="memory-list" class="memory-list"></ol><button id="more" class="quiet load-more" hidden>Load more</button>
+        <div class="scope-footer"><span id="scope-revision">No workspace selected</span><button id="forget-scope" class="danger-link" disabled>Forget this scope</button></div>
+      </aside>
+      <section class="panel conversation"><div class="panel-heading"><div><p class="eyebrow">02 / PUT IT TO WORK</p><h2>Try a conversation</h2></div><span class="pill">LIVE STREAM</span></div>
+        <div id="conversation" class="conversation-log" aria-live="polite"><div class="welcome"><span class="orbit" aria-hidden="true">◎</span><h3>Pick up where you left off.</h3><p>Load the fictional support example, then ask what the returning customer should try next.</p><button id="suggestion" class="suggestion" type="button">“The connector still fails after migration. What should I try before escalating?” ↗</button></div></div>
+        <form id="chat-form" class="composer"><label for="prompt" class="sr-only">Message</label><textarea id="prompt" placeholder="Ask something that builds on earlier context…" rows="3" maxlength="64000" required></textarea>
+          <div class="composer-controls"><label>Context<select id="retrieval"><option value="graph">Connected memory</option><option value="vector">Similar memories</option><option value="none">No memory</option></select></label><label class="check"><input type="checkbox" id="remember" checked>Remember reply</label><label class="check"><input type="checkbox" id="cache">Reuse exact answers</label></div>
+          <div class="composer-bottom"><span id="stream-state">Ready when you are</span><button id="stop" type="button" class="quiet" hidden>Stop</button><button id="send" type="submit" disabled>Send message ↗</button></div>
+        </form>
+      </section>
+      <aside class="panel detail"><div class="panel-heading"><div><p class="eyebrow">03 / FOLLOW THE CONTEXT</p><h2>Memory details</h2></div></div><div id="detail-empty" class="empty">Choose a memory or an answer’s source to inspect its history.</div><div id="detail-content" hidden></div></aside>
+    </section>
+    <footer>Built for continuity. Designed for inspection.<span>Retrieved sources explain supplied context; they do not prove an answer is correct.</span></footer>
+  </main>
+  <dialog id="edit-dialog"><form id="edit-form"><p class="eyebrow" id="edit-eyebrow">CURATED MEMORY</p><h2 id="edit-title">Add a memory</h2><p id="edit-help">Save a factual exchange without asking the model to generate one.</p><label>Question or situation<textarea id="edit-prompt" rows="3" maxlength="64000" required></textarea></label><label>Answer or verified information<textarea id="edit-response" rows="5" maxlength="64000" required></textarea></label><div class="dialog-actions"><button type="button" class="quiet" id="cancel-edit">Cancel</button><button type="submit" id="save-edit">Save memory</button></div></form></dialog>
+  <dialog id="delete-dialog"><form id="delete-form"><p class="eyebrow">MEMORY CONTROL</p><h2 id="delete-title">Forget this memory?</h2><p id="delete-help">This removes its live content and retires answers derived from it. Cached answers in this scope are invalidated. Content-free accounting remains; backups follow your retention policy.</p><div class="dialog-actions"><button type="button" class="quiet" id="cancel-delete">Keep memory</button><button type="submit" class="danger" id="confirm-delete">Forget memory</button></div></form></dialog>
+</body>
+</html>

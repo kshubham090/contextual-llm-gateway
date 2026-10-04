@@ -94,10 +94,11 @@ class GraphOutboxWorker:
                     async with asyncio.timeout(lease_seconds * 0.8):
                         async with semaphore:
                             event = item["event"]
-                            method = {"call": self.graph.write_call, "cache_hit": self.graph.write_cache_hit}
+                            method = {"call": "write_call", "cache_hit": "write_cache_hit",
+                                      "delete": "delete_call"}
                             if event.get("kind") not in method:
                                 raise ValueError("Unsupported graph event kind")
-                            await method[event["kind"]](**event["payload"])
+                            await getattr(self.graph, method[event["kind"]])(**event["payload"])
                     await self.db.ack_graph_event(item["id"], item["lease_token"])
                     return True
                 except asyncio.CancelledError:

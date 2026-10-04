@@ -1,0 +1,146 @@
+[
+  {
+    "review_id": "R0000",
+    "prompt": "A Cedar customer has CDR-409 after moving workspaces. What should support do before resuming sync?",
+    "answer": "Support should resume sync only after a cursor refresh and run a dry-run reconciliation.",
+    "factual_correctness_0_to_2": null,
+    "irrelevant_or_stale_facts": null,
+    "notes": ""
+  },
+  {
+    "review_id": "R0001",
+    "prompt": "A Cedar customer has CDR-409 after moving workspaces. What should support do before resuming sync?",
+    "answer": "Support should resume sync only after a cursor refresh and run a dry-run reconciliation.",
+    "factual_correctness_0_to_2": null,
+    "irrelevant_or_stale_facts": null,
+    "notes": ""
+  },
+  {
+    "review_id": "R0002",
+    "prompt": "The Cedar migration cursor issue persists after the approved retries. When and with what evidence should support escalate?",
+    "answer": "To escalate the issue of the synthetic Cedar migration cursor persistence, you should follow these steps:\n\n1. **Restate the Facts**: Ensure that all facts are restated clearly and concisely without inventing new information.\n   \n   - **Synthetic Cedar Connector Support**: Error CDR-409 indicates a stale cursor after workspace migration. The approved first step is to pause sync and request a fresh cursor from connector settings.\n   \n2. **Identify the Issue**: Clearly state the problem and its impact on the workflow.\n\n3. **Provide Evidence**: Include any relevant documentation, logs, or screenshots that can help verify the issue.\n\n4. **Propose a Resolution**: Suggest a course of action based on the evidence provided.\n\nBy following these steps, you ensure that the issue is clearly communicated and addressed, which will help in resolving it effectively.",
+    "factual_correctness_0_to_2": null,
+    "irrelevant_or_stale_facts": null,
+    "notes": ""
+  },
+  {
+    "review_id": "R0003",
+    "prompt": "The Cedar migration cursor issue persists after the approved retries. When and with what evidence should support escalate?",
+    "answer": "To escalate the issue of the synthetic Cedar migration cursor persistence, you should follow these steps:\n\n1. **Restate the Facts**: Ensure that the facts are restated clearly and concisely without inventing new policies or instructions.\n   \n   - **Synthetic Cedar Connector Support:** Error CDR-409 indicates a stale cursor after workspace migration. The approved first step is to pause sync and request a fresh cursor from connector settings.\n   \n2. **Identify the Issue**: Clearly define the problem based on the provided facts.\n\n3. **Propose an Action Plan**: Outline the specific actions needed to resolve the issue.\n\n4. **Provide Evidence**: Include any supporting documentation or context that can help verify the facts.\n\nBy following these steps, you ensure that the issue is clearly communicated and addressed, providing a clear path forward for resolution.",
+    "factual_correctness_0_to_2": null,
+    "irrelevant_or_stale_facts": null,
+    "notes": ""
+  },
+  {
+    "review_id": "R0004",
+    "prompt": "The Cedar migration cursor issue persists after the approved retries. When and with what evidence should support escalate?",
+    "answer": "When you encounter an issue where the Cedar migration cursor is still not moving after multiple approved retries, it's important to follow these steps to escalate the issue:\n\n1. **Review Logs**: Start by reviewing the logs for any relevant error messages or warnings that might provide more context about why the cursor is not moving.\n\n2. **Check Configuration**: Ensure that your Cedar instance configuration settings are correct. This includes the database connection details, the number of concurrent connections allowed, and any other parameters related to the migration process.\n\n3. **Database Performance**: Check if there are any performance issues affecting the migration process. This could include slow queries, large data sets, or insufficient resources (e.g., CPU, memory).\n\n4. **Migration Settings**: Verify that the migration settings are configured correctly. This includes specifying the source and destination databases, the target schema, and any specific options like `--max-connections` or `--max-time`.\n\n5. **Concurrency Control**: If you're using concurrency control mechanisms like `--concurrency`, ensure they are set appropriately. For example, if you have 10 concurrent connections, make sure they are being used efficiently.\n\n6. **Instance Health**: Check the health status of your Cedar instance. A healthy instance will allow the migration to proceed even",
+    "factual_correctness_0_to_2": null,
+    "irrelevant_or_stale_facts": null,
+    "notes": ""
+  },
+  {
+    "review_id": "R0005",
+    "prompt": "A Cedar customer has CDR-409 after moving workspaces. What should support do before resuming sync?",
+    "answer": "Support should resume sync only after a cursor refresh and run a dry-run reconciliation.",
+    "factual_correctness_0_to_2": null,
+    "irrelevant_or_stale_facts": null,
+    "notes": ""
+  },
+  {
+    "review_id": "R0006",
+    "prompt": "The Cedar migration cursor issue persists after the approved retries. When and with what evidence should support escalate?",
+    "answer": "To escalate the issue of the synthetic Cedar migration cursor persistence, you should follow these steps:\n\n1. **Restate the Facts**: Ensure that all relevant details are accurately restated without inventing new policies or instructions.\n   \n   - **Synthetic Cedar Connector Support:** Error CDR-409 indicates a stale cursor after workspace migration. The approved first step is to pause sync and request a fresh cursor from connector settings.\n   \n2. **Identify the Issue**: Clearly define the problem based on the provided facts.\n\n3. **Propose an Action Plan**: Describe how to resolve the issue by escalating it to the integration team with a redacted trace ID and migration timestamp.\n\n4. **Provide Evidence**: Include any supporting documentation or logs that can help verify the issue.\n\nBy following these steps, you ensure that the issue is clearly identified, documented, and escalated appropriately.",
+    "factual_correctness_0_to_2": null,
+    "irrelevant_or_stale_facts": null,
+    "notes": ""
+  },
+  {
+    "review_id": "R0007",
+    "prompt": "A Cedar customer has CDR-409 after moving workspaces. What should support do before resuming sync?",
+    "answer": "When a Cedar customer moves their workspaces and encounters an issue with the CDR-409 error code, it typically indicates that there is a problem with the synchronization process between the customer's local environment and the Cedar cloud service. Here\u2019s what support should do before resuming sync:\n\n1. **Review Logs**: Start by reviewing the logs from both the Cedar cloud service and the customer's local environment to identify any potential issues.\n\n2. **Check Environment Compatibility**: Ensure that the Cedar cloud service and the customer's environment are compatible. This includes checking for updates or patches that might be necessary for the specific version of the Cedar cloud service being used.\n\n3. **Update Dependencies**: If the Cedar cloud service uses certain dependencies, ensure they are up-to-date. Outdated dependencies can cause synchronization errors.\n\n4. **Contact Support**: Reach out to Cedar support directly if you cannot resolve the issue on your own. Provide them with detailed information about the error message, including the exact version of the Cedar cloud service and the state of the customer's environment.\n\n5. **Consult Documentation**: Refer to the Cedar documentation or community forums for troubleshooting tips specific to the Cedar cloud service. Sometimes, similar issues have been resolved in other Cedar instances or through different methods.\n\n6. **Test Sync",
+    "factual_correctness_0_to_2": null,
+    "irrelevant_or_stale_facts": null,
+    "notes": ""
+  },
+  {
+    "review_id": "R0008",
+    "prompt": "The Cedar migration cursor issue persists after the approved retries. When and with what evidence should support escalate?",
+    "answer": "When you encounter an issue where the Cedar migration cursor is still not moving after multiple approved retries, it's important to follow these steps to escalate the issue:\n\n1. **Review Logs**: Start by reviewing the logs for any relevant error messages or warnings that might provide more context about why the cursor is not moving.\n\n2. **Check Configuration**: Ensure that your Cedar instance configuration settings are correct. This includes the database connection details, the number of concurrent connections allowed, and any other parameters related to the migration process.\n\n3. **Database Performance**: Check if there are any performance issues affecting the migration process. This could include slow queries, large data sets, or insufficient resources (e.g., CPU, memory).\n\n4. **Migration Settings**: Verify that the migration settings are configured correctly. This includes specifying the source and destination databases, the target schema, and any specific options like `--max-connections` or `--max-time`.\n\n5. **Concurrency Control**: If you're using concurrency control mechanisms like `--concurrency`, ensure they are set appropriately. For example, if you have 10 concurrent connections, make sure they are being used efficiently.\n\n6. **Instance Health**: Check the health status of your Cedar instance. A healthy instance will allow the migration to proceed even",
+    "factual_correctness_0_to_2": null,
+    "irrelevant_or_stale_facts": null,
+    "notes": ""
+  },
+  {
+    "review_id": "R0009",
+    "prompt": "The Cedar migration cursor issue persists after the approved retries. When and with what evidence should support escalate?",
+    "answer": "When you encounter an issue where the Cedar migration cursor is still not moving after multiple approved retries, it's important to follow these steps to escalate the issue:\n\n1. **Review Logs**: Start by reviewing the logs for any relevant error messages or warnings that might provide more context about why the cursor is not moving.\n\n2. **Check Configuration**: Ensure that your Cedar instance configuration settings are correct. This includes the database connection details, the number of concurrent connections allowed, and any other parameters related to the migration process.\n\n3. **Database Performance**: Check if there are any performance issues affecting the migration process. This could include slow queries, large data sets, or insufficient resources (e.g., CPU, memory).\n\n4. **Migration Settings**: Verify that the migration settings are configured correctly. This includes specifying the source and destination databases, the target schema, and any specific options like `--max-connections` or `--max-time`.\n\n5. **Concurrency Control**: If you're using concurrency control mechanisms like `--concurrency`, ensure they are set appropriately. For example, if you have 10 concurrent connections, make sure they are being used efficiently.\n\n6. **Instance Health**: Check the health status of your Cedar instance. A healthy instance will allow the migration to proceed even",
+    "factual_correctness_0_to_2": null,
+    "irrelevant_or_stale_facts": null,
+    "notes": ""
+  },
+  {
+    "review_id": "R0010",
+    "prompt": "A Cedar customer has CDR-409 after moving workspaces. What should support do before resuming sync?",
+    "answer": "When a Cedar customer moves their workspaces and encounters an issue with the CDR-409 error code, it typically indicates that there is a problem with the synchronization process between the customer's local environment and the Cedar cloud service. Here\u2019s what support should do before resuming sync:\n\n1. **Review Logs**: Start by reviewing the logs from both the Cedar cloud service and the customer's local environment to identify any potential issues.\n\n2. **Check Environment Compatibility**: Ensure that the Cedar cloud service and the customer's environment are compatible. This includes checking for updates or patches that might be necessary for the specific version of the Cedar cloud service being used.\n\n3. **Update Dependencies**: If the Cedar cloud service uses certain dependencies, ensure they are up-to-date. Outdated dependencies can cause synchronization errors.\n\n4. **Contact Support**: Reach out to Cedar support directly if you cannot resolve the issue on your own. Provide them with detailed information about the error message, including the exact version of the Cedar cloud service and the state of the customer's environment.\n\n5. **Consult Documentation**: Refer to the Cedar documentation or community forums for troubleshooting tips specific to the Cedar cloud service. Sometimes, similar issues have been resolved in other Cedar instances or through different methods.\n\n6. **Test Sync",
+    "factual_correctness_0_to_2": null,
+    "irrelevant_or_stale_facts": null,
+    "notes": ""
+  },
+  {
+    "review_id": "R0011",
+    "prompt": "The Cedar migration cursor issue persists after the approved retries. When and with what evidence should support escalate?",
+    "answer": "To escalate the issue of the synthetic Cedar migration cursor persistence, you should follow these steps:\n\n1. **Restate the Facts**: Ensure that the facts are restated clearly and concisely without inventing new policies or instructions.\n   \n   - **Synthetic Cedar Connector Support:** Error CDR-409 indicates a stale cursor after workspace migration. The approved first step is to pause sync and request a fresh cursor from connector settings.\n   \n2. **Identify the Issue**: Clearly define the problem based on the provided facts.\n\n3. **Propose an Action Plan**: Outline the specific actions needed to resolve the issue.\n\n4. **Provide Evidence**: Include any supporting documentation or context that can help verify the facts.\n\nBy following these steps, you ensure that the issue is clearly communicated and addressed, providing a clear path forward for resolution.",
+    "factual_correctness_0_to_2": null,
+    "irrelevant_or_stale_facts": null,
+    "notes": ""
+  },
+  {
+    "review_id": "R0012",
+    "prompt": "A Cedar customer has CDR-409 after moving workspaces. What should support do before resuming sync?",
+    "answer": "Support should resume sync only after a cursor refresh and run a dry-run reconciliation.",
+    "factual_correctness_0_to_2": null,
+    "irrelevant_or_stale_facts": null,
+    "notes": ""
+  },
+  {
+    "review_id": "R0013",
+    "prompt": "A Cedar customer has CDR-409 after moving workspaces. What should support do before resuming sync?",
+    "answer": "When a Cedar customer moves their workspaces and encounters an issue with the CDR-409 error code, it typically indicates that there is a problem with the synchronization process between the customer's local environment and the Cedar cloud service. Here\u2019s what support should do before resuming sync:\n\n1. **Review Logs**: Start by reviewing the logs from both the Cedar cloud service and the customer's local environment to identify any potential issues.\n\n2. **Check Environment Compatibility**: Ensure that the Cedar cloud service and the customer's environment are compatible. This includes checking for updates or patches that might be necessary for the specific version of the Cedar cloud service being used.\n\n3. **Update Dependencies**: If the Cedar cloud service uses certain dependencies, ensure they are up-to-date. Outdated dependencies can cause synchronization errors.\n\n4. **Contact Support**: Reach out to Cedar support directly if you cannot resolve the issue on your own. Provide them with detailed information about the error message, including the exact version of the Cedar cloud service and the state of the customer's environment.\n\n5. **Consult Documentation**: Refer to the Cedar documentation or community forums for troubleshooting tips specific to the Cedar cloud service. Sometimes, similar issues have been resolved in other Cedar instances or through different methods.\n\n6. **Test Sync",
+    "factual_correctness_0_to_2": null,
+    "irrelevant_or_stale_facts": null,
+    "notes": ""
+  },
+  {
+    "review_id": "R0014",
+    "prompt": "The Cedar migration cursor issue persists after the approved retries. When and with what evidence should support escalate?",
+    "answer": "To escalate the issue of the synthetic Cedar migration cursor persistence, you should follow these steps:\n\n1. **Restate the Facts**: Ensure that all relevant details are accurately restated without inventing new policies or instructions.\n   \n   - **Synthetic Cedar Connector Support:** Error CDR-409 indicates a stale cursor after workspace migration. The approved first step is to pause sync and request a fresh cursor from connector settings.\n   \n2. **Identify the Issue**: Clearly define the problem based on the provided facts.\n\n3. **Propose an Action Plan**: Describe how to resolve the issue by escalating it to the integration team with a redacted trace ID and migration timestamp.\n\n4. **Provide Evidence**: Include any supporting documentation or logs that can help verify the issue.\n\nBy following these steps, you ensure that the issue is clearly identified, documented, and escalated appropriately.",
+    "factual_correctness_0_to_2": null,
+    "irrelevant_or_stale_facts": null,
+    "notes": ""
+  },
+  {
+    "review_id": "R0015",
+    "prompt": "A Cedar customer has CDR-409 after moving workspaces. What should support do before resuming sync?",
+    "answer": "Support should resume sync only after a cursor refresh and run a dry-run reconciliation.",
+    "factual_correctness_0_to_2": null,
+    "irrelevant_or_stale_facts": null,
+    "notes": ""
+  },
+  {
+    "review_id": "R0016",
+    "prompt": "A Cedar customer has CDR-409 after moving workspaces. What should support do before resuming sync?",
+    "answer": "Support should resume sync only after a cursor refresh and run a dry-run reconciliation.",
+    "factual_correctness_0_to_2": null,
+    "irrelevant_or_stale_facts": null,
+    "notes": ""
+  },
+  {
+    "review_id": "R0017",
+    "prompt": "The Cedar migration cursor issue persists after the approved retries. When and with what evidence should support escalate?",
+    "answer": "To escalate the issue of the synthetic Cedar migration cursor persistence, you should follow these steps:\n\n1. **Restate the Facts**: Ensure that all facts are restated clearly and concisely without inventing new information.\n   \n   - **Synthetic Cedar Connector Support**: Error CDR-409 indicates a stale cursor after workspace migration. The approved first step is to pause sync and request a fresh cursor from connector settings.\n   \n2. **Identify the Issue**: Clearly state the problem and its impact on the workflow.\n\n3. **Provide Evidence**: Include any relevant documentation, logs, or screenshots that can help verify the issue.\n\n4. **Propose a Resolution**: Suggest a course of action based on the evidence provided.\n\nBy following these steps, you ensure that the issue is clearly communicated and addressed, which will help in resolving it effectively.",
+    "factual_correctness_0_to_2": null,
+    "irrelevant_or_stale_facts": null,
+    "notes": ""
+  }
+]

@@ -37,3 +37,10 @@ The HNSW index accelerates approximate nearest-neighbor search; strict scope fil
 A graceful shutdown stops intake, bounds pending work, and leaves unacknowledged events durable for replay. An abrupt process termination cannot erase an already committed event. A graph outage can accumulate an outbox backlog, so disk usage and oldest pending-event age need alerts. Repeatedly failing events require operator investigation; do not claim delivery merely because an HTTP response succeeded.
 
 The gateway has no tool execution capability. Prompt injection can still corrupt an answer or future memory within an authorized scope. Text escaping is defense in depth, not a semantic security boundary. Retention TTL filters stop retrieval at expiry; physical cleanup and backup expiry are separate responsibilities.
+
+
+## Version 0.3.0 lifecycle and streaming
+
+The authoritative PostgreSQL memory scope has a revision. Requests capture it before retrieval and validate it again at final accounting; curated creation, correction and deletion advance it. Graph candidates are rehydrated from active scoped PostgreSQL records before prompting. Mutations retire affected content and derived answers, invalidate completion caches, and enqueue revision-fenced graph removals. Source liveness is checked again at commit, and derived memory expires no later than its earliest source. Content-free accounting survives a rejected stale finalization.
+
+Streaming uses a bounded producer queue. Provider and request deadlines include backpressure; a disconnected client before the first token cancels the pending prefetch, and response streaming owns cancellation afterward. Terminal success follows the durable PostgreSQL write. A partial answer can have incurred provider work without a successful final event. See [memory lifecycle](memory-lifecycle.md) and [API compatibility](api-compatibility.md) for exact contracts.

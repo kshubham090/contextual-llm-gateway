@@ -12,11 +12,20 @@ from app.schemas import ChatRequest
 
 
 class FakeDB:
-    def __init__(self, similar=None):
+    def __init__(self, similar=None, active=None):
         self.similar = similar or []
+        self.active = active
+        self.epoch = 0
         self.logged = []
         self.searches = []
         self.exact_searches = []
+
+    async def memory_epoch(self, **scope):
+        return self.epoch
+
+    async def filter_active_memories(self, ids, **scope):
+        rows = self.similar if self.active is None else self.active
+        return [row for row in rows if row["id"] in ids]
 
     async def find_exact(self, prompt, **kwargs):
         self.exact_searches.append(kwargs)
@@ -167,7 +176,9 @@ async def test_graph_failure_uses_scoped_vector_evidence_and_reports_degradation
 
 
 async def test_partial_graph_does_not_drop_direct_vector_seeds():
-    p = pipeline(db=FakeDB([similar(cache_eligible=False)]), graph=FakeGraph([similar(id="past-2")]))
+    p = pipeline(db=FakeDB([similar(cache_eligible=False)],
+                           active=[similar(), similar(id="past-2")]),
+                 graph=FakeGraph([similar(id="past-2")]))
     response = await p.handle_chat(req(), tenant_id="team-a")
     assert set(response.meta.context_used) == {"past-1", "past-2"}
 
@@ -307,3 +318,64 @@ async def test_cache_disabled_never_uses_exact_lookup():
     p = pipeline(db=FakeDB([similar()]))
     response = await p.handle_chat(req(use_cache=False), tenant_id="team-a")
     assert not response.meta.cache_hit and p.db.exact_searches == []
+
+
+async def test_vector_mode_uses_authoritative_vectors_without_graph_expansion():
+    p = pipeline(db=FakeDB([similar(cache_eligible=False)]), graph=FakeGraph(fail=True))
+    result = await p.handle_chat(req(retrieval_mode="vector", use_cache=False), tenant_id="team-a")
+    assert p.graph.scopes == [] and result.meta.context_used == ["past-1"]
+    assert result.meta.retrieval_mode == "vector" and not result.meta.degraded
+    explanation = p.db.logged[0]["retrieval"]
+    assert explanation["mode"] == "vector"
+    assert explanation["sources"][0]["reason"] == "vector_seed"
+    assert explanation["sources"][0]["similarity"] == 0.97
+    assert explanation["sources"][0]["rank_score"] > 0
+
+
+async def test_graph_copies_are_replaced_by_current_postgres_and_deleted_rows_removed():
+    db = FakeDB([similar(cache_eligible=False)], active=[similar(response="CURRENT fact")])
+    graph = FakeGraph([similar(response="STALE fact"), similar(id="deleted", response="DELETED fact")])
+    p = pipeline(db=db, graph=graph)
+    result = await p.handle_chat(req(use_cache=False), tenant_id="team-a")
+    assert result.meta.context_used == ["past-1"]
+    assert "CURRENT fact" in p.router.seen_system
+    assert "STALE fact" not in p.router.seen_system and "DELETED fact" not in p.router.seen_system
+    assert p.db.logged[0]["source_ids"] == ["past-1"]
+
+
+async def test_epoch_fences_cache_generation_embedding_memoization_and_commit():
+    p = pipeline()
+    p.db.epoch = 2
+    await p.handle_chat(req(), tenant_id="team-a")
+    before = p.embedder.requests[-1][1]["namespace"]
+    assert p.db.logged[-1]["expected_memory_epoch"] == 2
+    assert p.db.exact_searches[-1]["generation_config"] == generation_config(req(), 2)
+    p.db.epoch = 3
+    await p.handle_chat(req(), tenant_id="team-a")
+    assert p.embedder.requests[-1][1]["namespace"] != before
+    assert p.db.exact_searches[-1]["generation_config"] != p.db.exact_searches[-2]["generation_config"]
+
+
+@pytest.mark.parametrize("mode,use_graph", [("vector", True), ("none", True), ("graph", False)])
+def test_native_retrieval_mode_rejects_legacy_flag_conflicts(mode, use_graph):
+    with pytest.raises(ValueError, match="conflicts"):
+        req(retrieval_mode=mode, use_graph=use_graph)
+
+
+@pytest.mark.parametrize("mode", ["none", "vector", "graph"])
+def test_native_retrieval_mode_roundtrips_without_inventing_flag_conflict(mode):
+    request = req(retrieval_mode=mode)
+    assert ChatRequest.model_validate(request.model_dump()).effective_retrieval_mode == mode
+
+
+def test_cache_policy_separates_provider_endpoint_epoch_history_and_system(monkeypatch):
+    baseline = generation_config(req())
+    assert generation_config(req(), 1) != baseline
+    assert generation_config(req(system_prompt="Custom instruction")) != baseline
+    assert generation_config(req(history=[{"role": "user", "content": "Past"},
+                                         {"role": "assistant", "content": "Reply"}])) != baseline
+    monkeypatch.setattr(settings, "generation_backend", "openai_compatible")
+    endpoint1 = generation_config(req())
+    assert endpoint1 != baseline
+    monkeypatch.setattr(settings, "openai_base_url", "http://other-server.test/v1")
+    assert generation_config(req()) != endpoint1

@@ -1,0 +1,35 @@
+{
+  "status": "ready",
+  "evaluation_only": true,
+  "model": "Qwen/Qwen2.5-0.5B-Instruct",
+  "revision": "7ae557604adf67be50417f59c2c2f167def9a775",
+  "device": "mps",
+  "busy": false,
+  "streaming": false,
+  "sampling": {
+    "do_sample": false,
+    "num_beams": 1
+  },
+  "limits": {
+    "input_tokens": 4096,
+    "output_tokens": 256,
+    "inference_slots": 1,
+    "queue_size": 0,
+    "timeout_seconds": 120.0
+  },
+  "torch": "2.14.1",
+  "transformers": "5.18.0",
+  "dtype": "torch.float16",
+  "cpu_threads": 4,
+  "loaded_revision": null,
+  "embedding": {
+    "model": "sentence-transformers/all-MiniLM-L6-v2",
+    "revision": "1110a243fdf4706b3f48f1d95db1a4f5529b4d41",
+    "device": "cpu",
+    "cpu_threads": 4,
+    "dimension": 384,
+    "graph_similarity_threshold": 0.25
+  },
+  "model_snapshot": "models--Qwen--Qwen2.5-0.5B-Instruct/snapshots/7ae557604adf67be50417f59c2c2f167def9a775",
+  "hardware": "Apple M5, 10 CPU cores, 24 GiB; macOS26.6.2; same host gateway/generation/stores"
+}
