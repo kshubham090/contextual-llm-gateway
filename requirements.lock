@@ -1,0 +1,39 @@
+# Runtime package-version snapshot: 2026-10-04.
+# Source: tested contextual-gateway-qa-app image, CPython 3.12.15, Linux aarch64.
+# Regenerate from requirements.txt in a clean Python 3.12 image; see docs/operations.md.
+# Platform wheels and the base-image digest are not locked by this file.
+annotated-doc==0.0.5
+annotated-types==0.8.0
+anthropic==0.125.0
+anyio==4.15.1
+asyncpg==0.31.0
+certifi==2026.7.22
+click==8.5.0
+distro==1.9.0
+docstring_parser==0.18.0
+fastapi==0.142.2
+h11==0.16.0
+httpcore==1.0.9
+httptools==0.8.0
+httpx==0.28.1
+idna==3.20
+jiter==0.17.0
+neo4j==5.28.6
+opentelemetry-api==1.45.0
+prometheus_client==0.26.0
+pydantic==2.13.5
+pydantic-settings==2.15.0
+pydantic_core==2.46.5
+PyJWT==2.15.1
+python-dotenv==1.2.4
+pytz==2026.5
+PyYAML==6.0.3
+redis==5.3.1
+sniffio==1.3.1
+starlette==1.7.0
+typing-inspection==0.4.4
+typing_extensions==4.16.0
+uvicorn==0.54.0
+uvloop==0.23.0 ; sys_platform != "win32" and platform_python_implementation == "CPython"
+watchfiles==1.3.0
+websockets==17.2

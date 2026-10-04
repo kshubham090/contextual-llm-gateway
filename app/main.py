@@ -1,100 +1,210 @@
+"""Authenticated API and explicit startup/shutdown of service-owned resources."""
+
+import asyncio
 import logging
 from contextlib import asynccontextmanager
 from time import perf_counter
 
 import anthropic
+import asyncpg
 import httpx
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import Depends, FastAPI, HTTPException, Query, Request
+from fastapi.responses import JSONResponse, Response
+from prometheus_client import CONTENT_TYPE_LATEST
+from redis.exceptions import RedisError
 
+from . import metrics
+from .auth import Principal, authenticate, authenticate_metrics
+from .config import settings
 from .db import Database
-from .embeddings import EmbeddingClient
+from .embeddings import EmbeddingClient, EmbeddingClosedError, EmbeddingError, EmbeddingOverloadedError
 from .graph import MemoryGraph
-from .logs import log, new_request_id, setup_logging
-from .pipeline import Pipeline, RateLimitExceeded
-from .providers import Router
+from .logs import log, new_request_id, request_id_var, setup_logging
+from .middleware import RequestSizeLimitMiddleware
+from .outbox import GraphOutboxWorker
+from .pipeline import GatewayOverloaded, Pipeline, RateLimitExceeded
+from .providers import CircuitOpenError, ProviderClosedError, ProviderOverloadedError, Router
 from .rate_limit import RateLimiter
 from .schemas import ChatRequest, ChatResponse, UsageRow
 
-setup_logging()
 logger = logging.getLogger("gateway.http")
-
-db = Database()
-graph = MemoryGraph()
-embedder = EmbeddingClient()
-rate_limiter = RateLimiter()
-router = Router()
-pipeline = Pipeline(db, graph, embedder, rate_limiter, router)
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    await db.connect()
-    await graph.connect()
-    await rate_limiter.connect()
-    yield
-    await pipeline.drain()  # flush pending background write-backs
-    await db.close()
-    await graph.close()
-    await rate_limiter.close()
-    await embedder.close()
-
-
-app = FastAPI(
-    title="Contextual LLM Gateway",
-    description="An LLM gateway with a Neo4j-backed memory graph: every call is "
-    "embedded, linked to related past calls, and used to ground future requests.",
-    lifespan=lifespan,
-)
-
-
-@app.middleware("http")
-async def request_context(request: Request, call_next):
-    """Assign a request ID, echo it in the response, and emit one JSON access
-    log line per request — the anchor for every pipeline log with that ID."""
-    rid = new_request_id()
-    start = perf_counter()
-    response = await call_next(request)
-    response.headers["X-Request-ID"] = rid
-    log(
-        logger, "request",
-        method=request.method, path=request.url.path,
-        status=response.status_code,
-        duration_ms=int((perf_counter() - start) * 1000),
-    )
-    return response
-
-
-@app.post("/v1/chat", response_model=ChatResponse)
-async def chat(req: ChatRequest) -> ChatResponse:
+    setup_logging()
+    settings.validate_runtime()
+    resources = []
+    worker = None
+    app.state.ready = False
     try:
-        return await pipeline.handle_chat(req)
-    except RateLimitExceeded as e:
-        raise HTTPException(
-            status_code=429,
-            detail="Rate limit exceeded",
-            headers={"Retry-After": str(e.retry_after)},
+        db, graph, limiter = Database(), MemoryGraph(), RateLimiter()
+        resources.extend([db, graph, limiter])
+        embedder, router = EmbeddingClient(), Router()
+        resources.extend([embedder, router])
+        app.state.db, app.state.graph, app.state.limiter = db, graph, limiter
+        app.state.embedder, app.state.router = embedder, router
+        app.state.pipeline = Pipeline(db, graph, embedder, limiter, router)
+        await db.connect()
+        await graph.connect()
+        await limiter.connect()
+        await embedder.start()
+        worker = GraphOutboxWorker(db, graph)
+        app.state.outbox = worker
+        worker.start()
+        app.state.ready = True
+        yield
+    finally:
+        app.state.ready = False
+        if worker is not None:
+            await worker.stop(timeout=min(5, settings.shutdown_timeout_seconds))
+        if resources:
+            try:
+                async with asyncio.timeout(settings.shutdown_timeout_seconds):
+                    results = await asyncio.gather(
+                        *(resource.close() for resource in resources), return_exceptions=True
+                    )
+                    for result in results:
+                        if isinstance(result, BaseException):
+                            log(logger, "resource_close_failed", error_type=type(result).__name__)
+            except TimeoutError:
+                log(logger, "resource_close_timeout")
+
+
+def create_app() -> FastAPI:
+    app = FastAPI(
+        title="Contextual LLM Gateway",
+        version="0.2.0",
+        description="Scoped graph memory and measurable inference for trusted applications.",
+        lifespan=lifespan,
+        docs_url="/docs" if settings.environment == "development" else None,
+        redoc_url=None,
+        openapi_url="/openapi.json" if settings.environment == "development" else None,
+    )
+    app.state.ready = False
+    app.add_middleware(RequestSizeLimitMiddleware)
+
+    @app.middleware("http")
+    async def request_context(request: Request, call_next):
+        previous = request_id_var.get()
+        rid = new_request_id()
+        start = perf_counter()
+        try:
+            try:
+                response = await call_next(request)
+            except Exception as exc:
+                # Never return exception text: SDK/database errors can contain content or credentials.
+                log(logger, "request_failed", error_type=type(exc).__name__)
+                response = JSONResponse({"detail": "Service temporarily unavailable"}, status_code=503)
+            response.headers["X-Request-ID"] = rid
+            response.headers["Cache-Control"] = "no-store"
+            route = request.scope.get("route")
+            path = getattr(route, "path", "unmatched")
+            duration = perf_counter() - start
+            metrics.http_requests.labels(route=path, status=str(response.status_code)).inc()
+            metrics.http_latency.labels(route=path).observe(duration)
+            log(
+                logger,
+                "request",
+                method=request.method,
+                route=path,
+                status=response.status_code,
+                duration_ms=int(duration * 1000),
+            )
+            return response
+        finally:
+            request_id_var.set(previous)
+
+    @app.post("/v1/chat", response_model=ChatResponse)
+    async def chat(req: ChatRequest, request: Request, principal: Principal = Depends(authenticate)):
+        if not app.state.ready:
+            raise HTTPException(503, "Gateway is not ready", headers={"Retry-After": "1"})
+        try:
+            return await request.app.state.pipeline.handle_chat(req, tenant_id=principal.tenant_id)
+        except RateLimitExceeded as exc:
+            raise HTTPException(429, "Rate limit exceeded", headers={"Retry-After": str(exc.retry_after)})
+        except (
+            GatewayOverloaded,
+            EmbeddingOverloadedError,
+            ProviderOverloadedError,
+            CircuitOpenError,
+            ProviderClosedError,
+            EmbeddingClosedError,
+        ):
+            raise HTTPException(503, "Gateway capacity temporarily unavailable", headers={"Retry-After": "1"})
+        except TimeoutError:
+            raise HTTPException(504, "Request deadline exceeded")
+        except (EmbeddingError, httpx.HTTPError, anthropic.APIError):
+            raise HTTPException(502, "Inference service unavailable")
+        except (RedisError, asyncpg.PostgresError, ConnectionError):
+            raise HTTPException(503, "Required storage unavailable", headers={"Retry-After": "1"})
+
+    @app.get("/v1/usage", response_model=list[UsageRow])
+    async def usage(
+        request: Request,
+        principal: Principal = Depends(authenticate),
+        user_id: str | None = Query(default=None, min_length=1, max_length=128),
+        feature_tag: str | None = Query(default=None, min_length=1, max_length=128),
+        limit: int = Query(default=100, ge=1, le=1000),
+    ):
+        return await request.app.state.db.usage_rollup(
+            user_id=user_id,
+            feature_tag=feature_tag,
+            tenant_id=principal.tenant_id,
+            limit=limit,
         )
-    except httpx.HTTPStatusError as e:
-        raise HTTPException(status_code=502, detail=f"Embedding service error: {e}")
-    except anthropic.APIStatusError as e:
-        # Both primary and fallback model failed
-        raise HTTPException(status_code=502, detail=f"LLM provider error ({e.status_code})")
-    except anthropic.APIConnectionError:
-        raise HTTPException(status_code=502, detail="LLM provider unreachable")
+
+    @app.get("/v1/graph/stats")
+    async def graph_stats(
+        request: Request,
+        principal: Principal = Depends(authenticate),
+        user_id: str | None = Query(default=None, min_length=1, max_length=128),
+        feature_tag: str | None = Query(default=None, min_length=1, max_length=128),
+    ):
+        return await request.app.state.graph.stats(
+            tenant_id=principal.tenant_id,
+            user_id=user_id,
+            feature_tag=feature_tag,
+        )
+
+    @app.get("/health", include_in_schema=False)
+    @app.get("/health/live")
+    async def health():
+        return {"status": "ok"}
+
+    @app.get("/health/ready")
+    async def readiness(request: Request):
+        if not request.app.state.ready:
+            return JSONResponse({"status": "unavailable"}, status_code=503)
+        state = request.app.state
+
+        async def probe(resource):
+            try:
+                async with asyncio.timeout(2):
+                    return bool(await resource.health())
+            except Exception:
+                return False
+
+        postgres, redis, graph = await asyncio.gather(
+            probe(state.db), probe(state.limiter), probe(state.graph)
+        )
+        embedding = state.embedder.health()
+        ready = postgres and redis and embedding["started"] and not embedding["closed"]
+        ready = ready and state.outbox.health()["running"]
+        return JSONResponse(
+            {
+                "status": ("ready" if graph else "degraded") if ready else "unavailable",
+                "dependencies": {"postgres": postgres, "redis": redis, "graph": graph},
+            },
+            status_code=200 if ready else 503,
+        )
+
+    @app.get("/metrics", dependencies=[Depends(authenticate_metrics)], include_in_schema=False)
+    async def prometheus_metrics():
+        metrics.observe_runtime(app.state)
+        return Response(content=metrics.render(), headers={"Content-Type": CONTENT_TYPE_LATEST})
+
+    return app
 
 
-@app.get("/v1/usage", response_model=list[UsageRow])
-async def usage(user_id: str | None = None, feature_tag: str | None = None):
-    """Cost/usage rollup by user, feature, and day."""
-    return await db.usage_rollup(user_id=user_id, feature_tag=feature_tag)
-
-
-@app.get("/v1/graph/stats")
-async def graph_stats():
-    """Node/edge counts — watch the memory graph grow."""
-    return await graph.stats()
-
-
-@app.get("/health")
-async def health():
-    return {"status": "ok"}
+app = create_app()

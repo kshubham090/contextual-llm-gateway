@@ -1,6 +1,16 @@
+[project]
+name = "contextual-llm-gateway"
+version = "0.2.0"
+description = "A scoped, observable LLM gateway with graph memory and batched embeddings"
+requires-python = ">=3.12"
+readme = "README.md"
+
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 testpaths = ["tests"]
+markers = [
+  "integration: requires PostgreSQL, Neo4j and Redis services (opt-in)",
+]
 
 [tool.ruff]
 line-length = 110
@@ -8,7 +18,3 @@ target-version = "py312"
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "W"]
-
-[tool.ruff.lint.per-file-ignores]
-# Seed prompts are natural-language data; wrapping them mid-sentence hurts more than long lines do.
-"scripts/seed_demo.py" = ["E501"]

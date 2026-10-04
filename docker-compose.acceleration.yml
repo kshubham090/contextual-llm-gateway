@@ -1,0 +1,20 @@
+# Optional local CPU embeddings. Use a fresh deployment/database for 384 vectors.
+# docker compose -p gateway-local -f docker-compose.yml -f docker-compose.acceleration.yml up --build -d
+services:
+  app:
+    build:
+      args:
+        INSTALL_ACCELERATION: "true"
+    environment:
+      EMBEDDING_BACKEND: local
+      LOCAL_EMBEDDING_MODEL: sentence-transformers/all-MiniLM-L6-v2
+      LOCAL_EMBEDDING_DEVICE: cpu
+      EMBEDDING_DIM: 384
+      HF_HOME: /models
+    volumes: ["modelcache:/models"]
+    mem_limit: 4g
+    cpus: 4
+    healthcheck:
+      start_period: 180s
+volumes:
+  modelcache:

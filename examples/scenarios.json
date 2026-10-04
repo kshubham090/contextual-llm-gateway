@@ -1,0 +1,738 @@
+{
+  "schema_version": 1,
+  "synthetic": true,
+  "description": "Fictional evaluation fixtures. Not expert-approved operational, safety, financial, or privacy guidance.",
+  "scenarios": [
+    {
+      "id": "orbit-incident",
+      "title": "Deployment incident copilot",
+      "task": "Recall a service team's rollout and recovery procedure.",
+      "why_graph": "Connect a rollout policy, a configuration caveat, and the incident evidence required for recovery.",
+      "scope": {
+        "user_id": "eval-orbit-incident",
+        "feature_tag": "orbit-incident"
+      },
+      "seeds": [
+        {
+          "id": "memory-1",
+          "prompt": "Synthetic Orbit platform policy: each rollout shifts traffic 5%, then 25%, then 100%. The mandatory canary bake time is 8 minutes. Flight number ORB-2291 identifies the example release. Restate these supplied facts concisely; do not invent other policies."
+        },
+        {
+          "id": "memory-2",
+          "prompt": "Synthetic Orbit recovery policy: orbitctl revert restores the prior container image. It does not restore configuration; Ballast configuration needs a separate config revert. Restate these supplied facts concisely; do not invent other policies."
+        },
+        {
+          "id": "memory-3",
+          "prompt": "Synthetic Orbit deployment gate: releases are blocked when the remaining error budget is below 20%. A canary compares p99 latency and HTTP 5xx against baseline. Restate these supplied facts concisely; do not invent other policies."
+        },
+        {
+          "id": "memory-4",
+          "prompt": "Synthetic Orbit incident review: record the flight number with the incident timeline. Link Ballast config revisions when configuration changed. Production recovery requires hardware-key MFA. Restate these supplied facts concisely; do not invent other policies."
+        }
+      ],
+      "questions": [
+        {
+          "id": "recovery",
+          "prompt": "For an Orbit release incident involving both the image and Ballast settings, what recovery steps and audit reference should I use?",
+          "expected_facts": [
+            {
+              "id": "image-command",
+              "description": "Image rollback command",
+              "any_of": [
+                "orbitctl revert"
+              ]
+            },
+            {
+              "id": "config-command",
+              "description": "Separate configuration rollback",
+              "any_of": [
+                "config revert"
+              ]
+            },
+            {
+              "id": "audit-id",
+              "description": "Deployment audit identifier",
+              "any_of": [
+                "flight number"
+              ]
+            }
+          ],
+          "forbidden_facts": [
+            {
+              "id": "automatic-config",
+              "description": "Incorrect automatic configuration recovery",
+              "any_of": [
+                "automatically restores configuration",
+                "automatically restores config"
+              ]
+            },
+            {
+              "id": "other-scope",
+              "description": "Must not include the support workflow sentinel",
+              "any_of": [
+                "CEDAR-VERIFY-72"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "rollout-gate",
+          "prompt": "Before progressing an Orbit canary, which bake interval, budget gate, and performance signals apply?",
+          "expected_facts": [
+            {
+              "id": "bake-time",
+              "description": "Eight minute bake",
+              "any_of": [
+                "8 minutes",
+                "8 minute",
+                "eight minutes",
+                "eight minute"
+              ]
+            },
+            {
+              "id": "budget",
+              "description": "Twenty percent error budget",
+              "any_of": [
+                "20%",
+                "20 percent",
+                "twenty percent"
+              ]
+            },
+            {
+              "id": "signals",
+              "description": "Tail latency observation",
+              "any_of": [
+                "p99"
+              ]
+            }
+          ],
+          "forbidden_facts": [
+            {
+              "id": "wrong-bake",
+              "description": "Incorrect two minute bake",
+              "any_of": [
+                "2 minute",
+                "two minute"
+              ]
+            },
+            {
+              "id": "other-scope",
+              "description": "Must not include the research sentinel",
+              "any_of": [
+                "LANTERN-QC-17"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "cedar-support",
+      "title": "Customer support continuity",
+      "task": "Answer recurring enterprise connector cases using supplied account support rules.",
+      "why_graph": "Join error symptoms to a workaround and its escalation constraints without mixing a different user's runbook.",
+      "scope": {
+        "user_id": "eval-cedar-support",
+        "feature_tag": "cedar-support"
+      },
+      "seeds": [
+        {
+          "id": "memory-1",
+          "prompt": "Synthetic Cedar connector support: error CDR-409 indicates a stale cursor after workspace migration. The approved first step is to pause sync and request a fresh cursor from connector settings. Restate these supplied facts concisely; do not invent other policies."
+        },
+        {
+          "id": "memory-2",
+          "prompt": "Synthetic Cedar CDR-409 recovery: resume sync only after a cursor refresh and run a dry-run reconciliation. Never delete the customer workspace as a troubleshooting step. Restate these supplied facts concisely; do not invent other policies."
+        },
+        {
+          "id": "memory-3",
+          "prompt": "Synthetic Cedar escalation: if CDR-409 persists after two cursor refresh attempts, escalate to the integration team with a redacted trace ID and migration timestamp. Restate these supplied facts concisely; do not invent other policies."
+        },
+        {
+          "id": "memory-4",
+          "prompt": "Synthetic Cedar identity policy: verification marker CEDAR-VERIFY-72 identifies this exercise. Support verifies account ownership before changing connector settings; secrets must be removed from attachments. Restate these supplied facts concisely; do not invent other policies."
+        }
+      ],
+      "questions": [
+        {
+          "id": "cursor-recovery",
+          "prompt": "A Cedar customer has CDR-409 after moving workspaces. What should support do before resuming sync?",
+          "expected_facts": [
+            {
+              "id": "pause",
+              "description": "Pause synchronization",
+              "any_of": [
+                "pause sync",
+                "pause synchronization"
+              ]
+            },
+            {
+              "id": "cursor",
+              "description": "Refresh cursor",
+              "any_of": [
+                "fresh cursor",
+                "cursor refresh",
+                "refresh the cursor"
+              ]
+            },
+            {
+              "id": "dry-run",
+              "description": "Dry run reconciliation",
+              "any_of": [
+                "dry run reconciliation"
+              ]
+            }
+          ],
+          "forbidden_facts": [
+            {
+              "id": "delete",
+              "description": "Unsafe destructive suggestion",
+              "any_of": [
+                "delete the customer workspace",
+                "delete the workspace"
+              ]
+            },
+            {
+              "id": "other-scope",
+              "description": "No deployment command in support",
+              "any_of": [
+                "orbitctl"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "escalation",
+          "prompt": "The Cedar migration cursor issue persists after the approved retries. When and with what evidence should support escalate?",
+          "expected_facts": [
+            {
+              "id": "attempts",
+              "description": "Two retry threshold",
+              "any_of": [
+                "two cursor refresh",
+                "2 cursor refresh",
+                "two refresh",
+                "2 refresh"
+              ]
+            },
+            {
+              "id": "team",
+              "description": "Integration team owner",
+              "any_of": [
+                "integration team"
+              ]
+            },
+            {
+              "id": "evidence",
+              "description": "Trace evidence",
+              "any_of": [
+                "trace id"
+              ]
+            }
+          ],
+          "forbidden_facts": [
+            {
+              "id": "secrets",
+              "description": "Do not request secrets",
+              "any_of": [
+                "send the api key",
+                "attach the password"
+              ]
+            },
+            {
+              "id": "other-scope",
+              "description": "No research protocol sentinel",
+              "any_of": [
+                "LANTERN-QC-17"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "lantern-research",
+      "title": "Experiment protocol assistant",
+      "task": "Recover reproducibility constraints from a fictional nonclinical sensor experiment.",
+      "why_graph": "Associate calibration, sample handling, and acceptance criteria across separate experiment discussions.",
+      "scope": {
+        "user_id": "eval-lantern-research",
+        "feature_tag": "lantern-research"
+      },
+      "seeds": [
+        {
+          "id": "memory-1",
+          "prompt": "Synthetic Lantern optical sensor experiment: protocol LANTERN-QC-17 requires a dark-frame calibration before every measurement session. Record the detector serial number and calibration timestamp. Restate these supplied facts concisely; do not invent other policies."
+        },
+        {
+          "id": "memory-2",
+          "prompt": "Synthetic Lantern optical protocol: use exactly 12 reference tiles per run, measure each tile three times, and randomize tile order with recorded seed 31415. Restate these supplied facts concisely; do not invent other policies."
+        },
+        {
+          "id": "memory-3",
+          "prompt": "Synthetic Lantern acceptance policy: flag a run if reference drift exceeds 1.5%. Flagged runs are retained but excluded from the primary analysis until instrument review. Restate these supplied facts concisely; do not invent other policies."
+        },
+        {
+          "id": "memory-4",
+          "prompt": "Synthetic Lantern reproducibility packet: preserve raw frames, calibration metadata, the analysis commit SHA, and the randomization seed. The review owner is the instrumentation team. Restate these supplied facts concisely; do not invent other policies."
+        }
+      ],
+      "questions": [
+        {
+          "id": "prepare-run",
+          "prompt": "I am preparing a new Lantern sensor measurement session. Which calibration and sampling controls must be reproducible?",
+          "expected_facts": [
+            {
+              "id": "calibration",
+              "description": "Dark frame calibration",
+              "any_of": [
+                "dark frame"
+              ]
+            },
+            {
+              "id": "tiles",
+              "description": "Twelve reference tiles",
+              "any_of": [
+                "12 reference tiles",
+                "twelve reference tiles",
+                "12 tiles"
+              ]
+            },
+            {
+              "id": "seed",
+              "description": "Recorded random seed",
+              "any_of": [
+                "31415"
+              ]
+            }
+          ],
+          "forbidden_facts": [
+            {
+              "id": "other-scope",
+              "description": "No financial close rule",
+              "any_of": [
+                "QUARTZ-CLOSE-9"
+              ]
+            },
+            {
+              "id": "wrong-size",
+              "description": "No incorrect sample count",
+              "any_of": [
+                "20 reference tiles"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "drift-review",
+          "prompt": "A Lantern sensor run fails its reference drift check. What threshold, disposition, and review owner apply?",
+          "expected_facts": [
+            {
+              "id": "threshold",
+              "description": "Drift threshold",
+              "any_of": [
+                "1.5%",
+                "1.5 percent"
+              ]
+            },
+            {
+              "id": "disposition",
+              "description": "Exclude from primary analysis",
+              "any_of": [
+                "excluded from the primary analysis",
+                "exclude from primary analysis",
+                "excluded from primary analysis"
+              ]
+            },
+            {
+              "id": "owner",
+              "description": "Review owner",
+              "any_of": [
+                "instrumentation team"
+              ]
+            }
+          ],
+          "forbidden_facts": [
+            {
+              "id": "destructive",
+              "description": "Raw frames should be retained",
+              "any_of": [
+                "delete the raw frames",
+                "discard all raw frames"
+              ]
+            },
+            {
+              "id": "other-scope",
+              "description": "No deployment reference",
+              "any_of": [
+                "ORB-2291"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "quartz-data",
+      "title": "Data platform change advisor",
+      "task": "Recall safeguards for a fictional analytics table migration.",
+      "why_graph": "Connect schema ownership, dual writing, reconciliations, and rollback criteria from separate change discussions.",
+      "scope": {
+        "user_id": "eval-quartz-data",
+        "feature_tag": "quartz-data"
+      },
+      "seeds": [
+        {
+          "id": "memory-1",
+          "prompt": "Synthetic Quartz analytics migration: revenue_events_v2 is owned by the ledger analytics team. The migration tracking marker is QUARTZ-CLOSE-9. Every record carries tenant_key and event_id. Restate these supplied facts concisely; do not invent other policies."
+        },
+        {
+          "id": "memory-2",
+          "prompt": "Synthetic Quartz rollout policy: dual-write revenue_events and revenue_events_v2 for 72 hours. Compare row counts and amount_cents checksums partitioned by tenant_key before switching readers. Restate these supplied facts concisely; do not invent other policies."
+        },
+        {
+          "id": "memory-3",
+          "prompt": "Synthetic Quartz schema contract: amount_cents is an integer in minor currency units. currency_code is an ISO 4217 code. A nullable settlement_at field does not imply that an event is settled. Restate these supplied facts concisely; do not invent other policies."
+        },
+        {
+          "id": "memory-4",
+          "prompt": "Synthetic Quartz cutover: abort reader migration if any tenant partition has a checksum mismatch. Roll back the reader view; preserve both tables and the dual-write audit log for investigation. Restate these supplied facts concisely; do not invent other policies."
+        }
+      ],
+      "questions": [
+        {
+          "id": "cutover",
+          "prompt": "What evidence and observation window are required before Quartz readers move to revenue_events_v2?",
+          "expected_facts": [
+            {
+              "id": "window",
+              "description": "Dual write window",
+              "any_of": [
+                "72 hours",
+                "72 hour",
+                "seventy two hours"
+              ]
+            },
+            {
+              "id": "checksum",
+              "description": "Amount checksum",
+              "any_of": [
+                "checksum",
+                "checksums"
+              ]
+            },
+            {
+              "id": "partition",
+              "description": "Tenant partitioned verification",
+              "any_of": [
+                "tenant_key"
+              ]
+            }
+          ],
+          "forbidden_facts": [
+            {
+              "id": "destructive",
+              "description": "Must not delete old table during cutover",
+              "any_of": [
+                "drop revenue_events",
+                "delete the old table"
+              ]
+            },
+            {
+              "id": "other-scope",
+              "description": "No maintenance sentinel",
+              "any_of": [
+                "HARBOR-LOCK-6"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "mismatch",
+          "prompt": "A Quartz tenant's amount check differs during migration. What should be stopped, rolled back, and retained?",
+          "expected_facts": [
+            {
+              "id": "halt",
+              "description": "Stop cutover",
+              "any_of": [
+                "abort",
+                "stop",
+                "halt"
+              ]
+            },
+            {
+              "id": "rollback",
+              "description": "Reader view rollback",
+              "any_of": [
+                "reader view"
+              ]
+            },
+            {
+              "id": "retain",
+              "description": "Retain audit evidence",
+              "any_of": [
+                "audit log"
+              ]
+            }
+          ],
+          "forbidden_facts": [
+            {
+              "id": "wrong-units",
+              "description": "Incorrect currency units",
+              "any_of": [
+                "amount_cents is in dollars",
+                "amount_cents stores dollars"
+              ]
+            },
+            {
+              "id": "other-scope",
+              "description": "No support sentinel",
+              "any_of": [
+                "CEDAR-VERIFY-72"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "harbor-maintenance",
+      "title": "Equipment maintenance knowledge",
+      "task": "Recall a fictional training rig's inspection and escalation checklist.",
+      "why_graph": "Link a symptom, a controlled shutdown procedure, and a qualified owner's return-to-service criteria.",
+      "scope": {
+        "user_id": "eval-harbor-maintenance",
+        "feature_tag": "harbor-maintenance"
+      },
+      "seeds": [
+        {
+          "id": "memory-1",
+          "prompt": "Synthetic Harbor training conveyor: vibration alert HBR-V8 triggers a controlled stop and technician inspection. This is a fictional training rig, not instructions for real equipment. Restate these supplied facts concisely; do not invent other policies."
+        },
+        {
+          "id": "memory-2",
+          "prompt": "Synthetic Harbor training safety card HARBOR-LOCK-6: only a qualified technician may perform lockout/tagout before inspection. Operators must not bypass guards or restart a locked rig. Restate these supplied facts concisely; do not invent other policies."
+        },
+        {
+          "id": "memory-3",
+          "prompt": "Synthetic Harbor HBR-V8 inspection: check belt alignment and the left idler bearing. Record the vibration trend and bearing temperature in the maintenance log. Restate these supplied facts concisely; do not invent other policies."
+        },
+        {
+          "id": "memory-4",
+          "prompt": "Synthetic Harbor return-to-service: the maintenance supervisor signs off after the guarded test cycle. The test cycle runs for 10 minutes, and trend evidence is attached to the signoff. Restate these supplied facts concisely; do not invent other policies."
+        }
+      ],
+      "questions": [
+        {
+          "id": "inspection",
+          "prompt": "For the fictional Harbor rig's HBR-V8 alert, what is the response sequence and which components require inspection?",
+          "expected_facts": [
+            {
+              "id": "stop",
+              "description": "Controlled stop",
+              "any_of": [
+                "controlled stop"
+              ]
+            },
+            {
+              "id": "qualified",
+              "description": "Qualified technician",
+              "any_of": [
+                "qualified technician"
+              ]
+            },
+            {
+              "id": "bearing",
+              "description": "Left idler bearing inspection",
+              "any_of": [
+                "left idler bearing"
+              ]
+            }
+          ],
+          "forbidden_facts": [
+            {
+              "id": "bypass",
+              "description": "Unsafe guard bypass",
+              "any_of": [
+                "bypass the guards",
+                "bypass guards"
+              ]
+            },
+            {
+              "id": "other-scope",
+              "description": "No deployment CLI",
+              "any_of": [
+                "orbitctl"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "release",
+          "prompt": "Who releases the fictional Harbor training rig back to service, and what test evidence is needed?",
+          "expected_facts": [
+            {
+              "id": "owner",
+              "description": "Supervisor authorization",
+              "any_of": [
+                "maintenance supervisor"
+              ]
+            },
+            {
+              "id": "cycle",
+              "description": "Ten minute test",
+              "any_of": [
+                "10 minutes",
+                "10 minute",
+                "ten minutes",
+                "ten minute"
+              ]
+            },
+            {
+              "id": "evidence",
+              "description": "Trend evidence",
+              "any_of": [
+                "trend"
+              ]
+            }
+          ],
+          "forbidden_facts": [
+            {
+              "id": "restart",
+              "description": "Do not restart without approval",
+              "any_of": [
+                "restart without approval"
+              ]
+            },
+            {
+              "id": "other-scope",
+              "description": "No research sentinel",
+              "any_of": [
+                "LANTERN-QC-17"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "meadow-release",
+      "title": "Privacy-aware release coordination",
+      "task": "Recall a fictional organization's synthetic-data launch process.",
+      "why_graph": "Connect data classification, retention, and accountable reviewers across the release lifecycle.",
+      "scope": {
+        "user_id": "eval-meadow-release",
+        "feature_tag": "meadow-release"
+      },
+      "seeds": [
+        {
+          "id": "memory-1",
+          "prompt": "Synthetic Meadow preview release: use synthetic datasets only. The release marker is MEADOW-PREVIEW-4. Real customer records are prohibited from preview fixtures and screenshots. Restate these supplied facts concisely; do not invent other policies."
+        },
+        {
+          "id": "memory-2",
+          "prompt": "Synthetic Meadow preview storage: temporary exports expire after 48 hours. Preview access is limited to the named review group; each export requires an owner and deletion timestamp. Restate these supplied facts concisely; do not invent other policies."
+        },
+        {
+          "id": "memory-3",
+          "prompt": "Synthetic Meadow release checklist: the privacy engineer reviews the data manifest, and the accessibility reviewer checks keyboard navigation before public launch. Restate these supplied facts concisely; do not invent other policies."
+        },
+        {
+          "id": "memory-4",
+          "prompt": "Synthetic Meadow blocked release: if the manifest contains a real customer identifier, stop the release, remove the affected export, and notify the privacy engineer through the internal incident process. Restate these supplied facts concisely; do not invent other policies."
+        }
+      ],
+      "questions": [
+        {
+          "id": "preview",
+          "prompt": "Which data and retention controls apply to preparing the Meadow preview and its review access?",
+          "expected_facts": [
+            {
+              "id": "synthetic",
+              "description": "Synthetic datasets",
+              "any_of": [
+                "synthetic"
+              ]
+            },
+            {
+              "id": "retention",
+              "description": "Forty eight hour expiry",
+              "any_of": [
+                "48 hours",
+                "48 hour",
+                "forty eight hours"
+              ]
+            },
+            {
+              "id": "access",
+              "description": "Named reviewers",
+              "any_of": [
+                "named review group"
+              ]
+            }
+          ],
+          "forbidden_facts": [
+            {
+              "id": "real-data",
+              "description": "No real customer fixture use",
+              "any_of": [
+                "use real customer records",
+                "include real customer records"
+              ]
+            },
+            {
+              "id": "other-scope",
+              "description": "No financial migration sentinel",
+              "any_of": [
+                "QUARTZ-CLOSE-9"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "launch-review",
+          "prompt": "For Meadow launch signoff, who reviews the manifest and what accessibility interaction must be checked?",
+          "expected_facts": [
+            {
+              "id": "privacy",
+              "description": "Privacy reviewer",
+              "any_of": [
+                "privacy engineer"
+              ]
+            },
+            {
+              "id": "accessibility",
+              "description": "Accessibility reviewer",
+              "any_of": [
+                "accessibility reviewer"
+              ]
+            },
+            {
+              "id": "keyboard",
+              "description": "Keyboard navigation",
+              "any_of": [
+                "keyboard navigation"
+              ]
+            }
+          ],
+          "forbidden_facts": [
+            {
+              "id": "skip-review",
+              "description": "No bypass of privacy review",
+              "any_of": [
+                "skip the privacy review"
+              ]
+            },
+            {
+              "id": "other-scope",
+              "description": "No support verification marker",
+              "any_of": [
+                "CEDAR-VERIFY-72"
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

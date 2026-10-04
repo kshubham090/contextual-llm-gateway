@@ -1,0 +1,4 @@
+-r requirements.lock
+# Optional local inference only. The service's default Voyage backend needs no torch.
+# Choose a PyTorch build appropriate to your CPU/CUDA/MPS hardware before deploying.
+sentence-transformers>=3.4,<6

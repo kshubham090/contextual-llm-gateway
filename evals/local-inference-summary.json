@@ -1,0 +1,35 @@
+{
+  "scope": "Warm local embeddings only, fixed short synthetic prompts; not end-to-end gateway or LLM performance.",
+  "hardware": {
+    "cpu": "Apple M5",
+    "physical_cpu_cores": 10,
+    "memory_gib": 24
+  },
+  "trials_per_device": 3,
+  "requests_per_trial": 512,
+  "concurrency": 64,
+  "batch_size": 32,
+  "cpu_threads": 4,
+  "model": "sentence-transformers/all-MiniLM-L6-v2",
+  "revision": "1110a243fdf4706b3f48f1d95db1a4f5529b4d41",
+  "results": {
+    "cpu": {
+      "median_throughput_ratio": 4.998,
+      "median_baseline_requests_per_second": 308.27,
+      "median_batched_requests_per_second": 1502.88,
+      "median_baseline_p95_ms": 264.891,
+      "median_batched_p95_ms": 46.057,
+      "all_vectors_within_tolerance": true,
+      "minimum_cosine_similarity": 1.0
+    },
+    "mps": {
+      "median_throughput_ratio": 8.36,
+      "median_baseline_requests_per_second": 264.0,
+      "median_batched_requests_per_second": 2207.08,
+      "median_baseline_p95_ms": 288.376,
+      "median_batched_p95_ms": 34.644,
+      "all_vectors_within_tolerance": true,
+      "minimum_cosine_similarity": 1.0
+    }
+  }
+}
